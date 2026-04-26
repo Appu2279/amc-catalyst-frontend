@@ -22,10 +22,14 @@ export const DashboardLayout = ({ children, active }) => {
     <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="hidden w-64 bg-white border-r border-slate-200 md:flex flex-col">
-        <div className="p-6">
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="p-1.5 bg-gradient-to-br from-brand-blue to-brand-violet rounded-lg">
-              <div className="w-5 h-5 text-white flex items-center justify-center font-bold">A</div>
+        <div>
+          <Link to="/" className="flex items-center">
+            <div>
+              <img
+                src="/images/logo.png"
+                alt="AMC Catalyst Logo"
+                className="w-20 h-20 object-contain rounded-lg bg-white p-1 group-hover:shadow-lg transition-all duration-300"
+              />
             </div>
             <span className="text-lg font-bold text-slate-900">AMC CATALYST</span>
           </Link>

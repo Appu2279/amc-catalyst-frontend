@@ -11,9 +11,11 @@ export const Footer = () => {
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="flex items-center space-x-2 group">
-              <div className="p-2 bg-gradient-to-br from-brand-blue to-brand-violet rounded-lg group-hover:shadow-lg transition-all duration-300">
-                <Stethoscope className="w-6 h-6 text-white" />
-              </div>
+              <img
+                src="/images/logo.png"
+                alt="AMC Catalyst Logo"
+                className="w-10 h-10 object-contain rounded-lg bg-white group-hover:shadow-lg transition-all duration-300"
+              />
               <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
                 AMC CATALYST
               </span>

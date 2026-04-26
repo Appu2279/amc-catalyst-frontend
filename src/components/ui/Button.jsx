@@ -1,17 +1,12 @@
 import React from 'react';
 import { cn } from '@/utils/cn';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'gold' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-}
-
-export const Button: React.FC<ButtonProps> = ({ 
-  className, 
-  variant = 'primary', 
-  size = 'md', 
-  children, 
-  ...props 
+export const Button = ({
+  className,
+  variant = 'primary',
+  size = 'md',
+  children,
+  ...props
 }) => {
   const variants = {
     primary: 'bg-brand-blue text-white hover:bg-brand-blue-hover shadow-lg shadow-brand-blue/30',

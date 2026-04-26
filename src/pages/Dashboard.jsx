@@ -1,106 +1,24 @@
-import React from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { Button } from '@/components/ui/Button';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Video, 
-  Users, 
-  Settings, 
-  LogOut, 
-  Bell,
-  Search,
+import { useAuth } from '@/context/AuthContext';
+import {
+  BookOpen,
+  Target,
   Trophy,
-  Target
+  Video
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Sidebar */}
-      <aside className="hidden w-64 bg-white border-r border-slate-200 md:flex flex-col">
-        <div className="p-6">
-           <Link to="/" className="flex items-center space-x-2">
-            <div className="p-1.5 bg-gradient-to-br from-brand-blue to-brand-violet rounded-lg">
-              <div className="w-5 h-5 text-white flex items-center justify-center font-bold">A</div>
-            </div>
-            <span className="text-lg font-bold text-slate-900">AMC CATALYST</span>
-          </Link>
-        </div>
-
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <a href="#" className="flex items-center px-4 py-3 text-brand-blue bg-brand-blue/10 rounded-lg group">
-            <LayoutDashboard className="w-5 h-5 mr-3" />
-            <span className="font-medium">Dashboard</span>
-          </a>
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
-            <BookOpen className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
-            <span className="font-medium">QBank</span>
-          </a>
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
-            <Video className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
-            <span className="font-medium">Videos</span>
-          </a>
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
-            <Users className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
-            <span className="font-medium">Roleplays</span>
-          </a>
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
-            <Trophy className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
-            <span className="font-medium">Mock Exams</span>
-          </a>
-        </nav>
-
-        <div className="p-4 border-t border-slate-200 space-y-2">
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
-            <Settings className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
-            <span className="font-medium">Settings</span>
-          </a>
-          <button onClick={logout} className="w-full flex items-center px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg group transition-colors">
-            <LogOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-500" />
-            <span className="font-medium">Logout</span>
-          </button>
-        </div>
-      </aside>
-
+    <DashboardLayout active="dashboard">
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sm:px-8">
-          <div className="flex items-center flex-1">
-            <div className="relative w-full max-w-md">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-slate-400" />
-              </div>
-              <input 
-                type="text" 
-                className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-brand-blue focus:border-brand-blue sm:text-sm"
-                placeholder="Search topics, questions, or videos..."
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button className="p-2 text-slate-400 hover:text-slate-500 relative">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
-            </button>
-            <div className="flex items-center space-x-3 border-l border-slate-200 pl-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-blue to-brand-violet text-white flex items-center justify-center font-bold">
-                {user?.name.charAt(0)}
-              </div>
-              <span className="text-sm font-medium text-slate-700 hidden sm:block">{user?.name}</span>
-            </div>
-          </div>
-        </header>
-
         {/* Dashboard Content */}
         <div className="flex-1 overflow-auto p-6 sm:p-8">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900">Welcome back, Dr. {user?.name.split(' ')[1]}!</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Welcome back, Dr. {user?.fullName.split(' ')[0]}!</h1>
             <p className="text-slate-600">Here's an overview of your progress today.</p>
           </div>
 
@@ -180,6 +98,7 @@ export const Dashboard = () => {
           </div>
         </div>
       </main>
-    </div>
+    </DashboardLayout>
   );
 };
+  

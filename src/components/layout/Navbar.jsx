@@ -7,7 +7,8 @@ import { cn } from '@/utils/cn';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
+  const dashboardPath = user?.role === 'admin' ? '/admin' : '/dashboard';
   const location = useLocation();
 
   const navLinks = [
@@ -60,7 +61,7 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <>
-                <Link to="/dashboard">
+                <Link to={dashboardPath}>
                   <Button variant="outline" size="sm">Dashboard</Button>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>
@@ -111,7 +112,7 @@ export const Navbar = () => {
             <div className="pt-4 border-t border-slate-100 flex flex-col space-y-3">
               {isAuthenticated ? (
                 <>
-                  <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+                  <Link to={dashboardPath} onClick={() => setIsOpen(false)}>
                     <Button className="w-full" variant="outline">Dashboard</Button>
                   </Link>
                   <Button className="w-full" variant="ghost" onClick={() => { logout(); setIsOpen(false); }}>

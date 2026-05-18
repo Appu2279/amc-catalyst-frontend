@@ -68,20 +68,20 @@ export const DashboardLayout = ({ children, active }) => {
             <BookOpen className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">QBank</span>
           </Link>
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
+          <Link to="/recall" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
             <UndoDotIcon className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">Recall</span>
-          </a>
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
+          </Link>
+          <Link to="/mock-exam" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
             <Trophy className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">Mock Exams</span>
-          </a>
+          </Link>
         </nav>
         <div className="p-4 border-t border-slate-200 space-y-2">
-          <a href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
+          {/* <Link href="#" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
             <Settings className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">Settings</span>
-          </a>
+          </Link> */}
           <button onClick={logout} className="w-full flex items-center px-4 py-3 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg group transition-colors">
             <LogOut className="w-5 h-5 mr-3 text-slate-400 group-hover:text-red-500" />
             <span className="font-medium">Logout</span>
@@ -89,7 +89,7 @@ export const DashboardLayout = ({ children, active }) => {
         </div>
       </aside>
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-y-auto">
         {/* Header */}
         <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 sm:px-8">
           <div className="flex items-center flex-1">
@@ -117,8 +117,71 @@ export const DashboardLayout = ({ children, active }) => {
             </div>
           </div>
         </header>
-        {children}
+        <div className="pb-16 md:pb-0">
+          {children}
+        </div>
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
+        <div className="flex items-center justify-around h-16">
+          <Link
+            to="/dashboard"
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
+              active === 'dashboard' || location.pathname === '/dashboard'
+                ? 'text-brand-blue'
+                : 'text-slate-400'
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Home</span>
+          </Link>
+          <Link
+            to="/notes"
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
+              active === 'notes' || location.pathname === '/notes'
+                ? 'text-brand-blue'
+                : 'text-slate-400'
+            }`}
+          >
+            <NotebookPen className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Notes</span>
+          </Link>
+          <Link
+            to="/qbank"
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
+              active === 'qbank' || location.pathname === '/qbank'
+                ? 'text-brand-blue'
+                : 'text-slate-400'
+            }`}
+          >
+            <BookOpen className="w-5 h-5" />
+            <span className="text-[10px] font-medium">QBank</span>
+          </Link>
+          <Link
+            to="/recall"
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
+              active === 'recall' || location.pathname === '/recall'
+                ? 'text-brand-blue'
+                : 'text-slate-400'
+            }`}
+          >
+            <UndoDotIcon className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Recall</span>
+          </Link>
+          <Link
+            to="/mock-exam"
+            className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
+              active === 'mock-exam' || location.pathname === '/mock-exam'
+                ? 'text-brand-blue'
+                : 'text-slate-400'
+            }`}
+          >
+            <Trophy className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Exams</span>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 };

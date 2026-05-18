@@ -17,7 +17,7 @@ export const Login = () => {
       const response = await loginUser({ email, password });
       const { user, token } = response.data;
       login(user, token);
-      navigate('/dashboard');
+      navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
     }

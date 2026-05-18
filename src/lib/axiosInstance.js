@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:5001/api',
+  baseURL: 'http://localhost:3000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -11,8 +11,9 @@ const axiosInstance = axios.create({
 // Request interceptor (e.g., add auth token)
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    const raw = localStorage.getItem('amc_catalyst_token');
+    if (raw) {
+      const token = JSON.parse(raw);
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

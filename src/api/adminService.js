@@ -42,3 +42,13 @@ export const getCourses = () => axiosInstance.get('/courses');
 export const createCourse = (data) => axiosInstance.post('/courses', data);
 export const updateCourse = (id, data) => axiosInstance.put(`/courses/${id}`, data);
 export const deleteCourse = (id) => axiosInstance.delete(`/courses/${id}`);
+
+// Features (shared pool)
+export const getFeatures = () => axiosInstance.get('/features');
+export const createFeature = (data) => axiosInstance.post('/features', data);
+export const deleteFeature = (id) => axiosInstance.delete(`/features/${id}`);
+
+// Benefits (shared pool)
+export const getBenefits = () => axiosInstance.get('/benefits');
+export const createBenefit = (data) => axiosInstance.post('/benefits', data);
+export const deleteBenefit = (id) => axiosInstance.delete(`/benefits/${id}`);

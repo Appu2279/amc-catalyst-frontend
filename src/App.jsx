@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
@@ -21,6 +21,8 @@ import { QBank } from '@/pages/Qbank';
 import { Notes } from '@/pages/Notes';
 import { Recall } from '@/pages/Recall';
 import { MockExam } from '@/pages/MockExam';
+import { MockExamSession } from '@/pages/MockExamSession';
+import { MockExamResult } from '@/pages/MockExamResult';
 
 // Admin pages
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
@@ -52,9 +54,20 @@ const AuthRoute = ({ children }) => {
   return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
 };
 
+// Blocks right-click context menu across the entire app
+const NoContextMenu = () => {
+  useEffect(() => {
+    const block = (e) => e.preventDefault();
+    document.addEventListener('contextmenu', block);
+    return () => document.removeEventListener('contextmenu', block);
+  }, []);
+  return null;
+};
+
 export const App = () => (
   <BrowserRouter>
     <AuthProvider>
+      <NoContextMenu />
       <ScrollToTop />
       <Routes>
         {/* Public */}
@@ -75,6 +88,8 @@ export const App = () => (
           <Route path="/notes" element={<Notes />} />
           <Route path="/recall" element={<Recall />} />
           <Route path="/mock-exam" element={<MockExam />} />
+          <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
+          <Route path="/mock-exam/:testId/result/:attemptId"  element={<MockExamResult />} />
         </Route>
 
         {/* Admin panel — requires role=admin */}

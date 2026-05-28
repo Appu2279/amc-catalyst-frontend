@@ -26,6 +26,7 @@ export const addMockTestQuestions = (id, questions) =>
   axiosInstance.post(`/admin/mock-tests/${id}/questions`, { questions });
 export const removeMockTestQuestion = (id, qId) =>
   axiosInstance.delete(`/admin/mock-tests/${id}/questions/${qId}`);
+export const getQuestionPool = () => axiosInstance.get('/admin/mock-tests/question-pool');
 
 // Subjects & Topics
 export const getSubjects = () => axiosInstance.get('/subjects');

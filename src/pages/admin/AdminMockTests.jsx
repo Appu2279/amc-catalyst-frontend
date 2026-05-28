@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Modal } from '@/components/admin/Modal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -10,6 +10,7 @@ import {
   deleteMockTest,
   togglePublishMockTest,
   getSubjects,
+  getQuestionPool,
 } from '@/api/adminService';
 import { Plus, Eye, Trash2, ToggleLeft, ToggleRight, PieChart, Pencil } from 'lucide-react';
 
@@ -124,7 +125,21 @@ const FixedForm = ({ form, setForm }) => (
   </div>
 );
 
-const DynamicForm = ({ form, setForm, subjects }) => {
+// ── Pool stat pill ────────────────────────────────────────────────────────────
+const PoolPill = ({ label, count, needed, color }) => {
+  const over = needed > 0 && count < needed;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+      over ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500'
+    }`}>
+      <span style={{ color }}>{label}</span>
+      <span className={over ? 'text-red-600' : 'text-slate-700'}>{count}</span>
+      {over && <span className="text-red-400">(need {needed})</span>}
+    </span>
+  );
+};
+
+const DynamicForm = ({ form, setForm, subjects, pool }) => {
   const addRow = () => setForm((p) => ({ ...p, subject_rows: [...p.subject_rows, { subject_id: '', count: 10 }] }));
   const removeRow = (i) => setForm((p) => ({ ...p, subject_rows: p.subject_rows.filter((_, idx) => idx !== i) }));
   const updateRow = (i, key, val) => setForm((p) => {
@@ -134,6 +149,12 @@ const DynamicForm = ({ form, setForm, subjects }) => {
   });
 
   const pctTotal = (Number(form.easy_pct) || 0) + (Number(form.medium_pct) || 0) + (Number(form.hard_pct) || 0);
+  const hasDifficulty = pctTotal === 100;
+
+  // Build a lookup: subject_id (string) → pool entry
+  const poolMap = Object.fromEntries((pool ?? []).map((p) => [String(p.subject_id), p]));
+
+  const totalConfigured = form.subject_rows.reduce((s, r) => s + (Number(r.count) || 0), 0);
 
   return (
     <div className="space-y-5">
@@ -148,52 +169,99 @@ const DynamicForm = ({ form, setForm, subjects }) => {
       {/* Subject rows */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-medium text-slate-600">Subject Configuration</label>
+          <div>
+            <label className="text-xs font-medium text-slate-600">Subject Configuration</label>
+            <span className="ml-2 text-xs text-slate-400">Total: <strong className="text-slate-700">{totalConfigured}</strong> questions</span>
+          </div>
           <button type="button" onClick={addRow} className="text-xs text-brand-blue hover:underline">+ Add Subject</button>
         </div>
-        <div className="space-y-2">
-          {form.subject_rows.map((row, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <select
-                className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                value={row.subject_id}
-                onChange={(e) => updateRow(i, 'subject_id', e.target.value)}
-              >
-                <option value="">Select subject</option>
-                {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-              <input
-                type="number"
-                min={1}
-                className="w-20 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
-                value={row.count}
-                onChange={(e) => updateRow(i, 'count', e.target.value)}
-                placeholder="Count"
-              />
-              {form.subject_rows.length > 1 && (
-                <button type="button" onClick={() => removeRow(i)} className="text-slate-300 hover:text-red-500 text-lg leading-none">×</button>
-              )}
-            </div>
-          ))}
+        <div className="space-y-3">
+          {form.subject_rows.map((row, i) => {
+            const entry = row.subject_id ? poolMap[String(row.subject_id)] : null;
+            const count = Number(row.count) || 0;
+            const easyNeeded   = hasDifficulty ? Math.floor(count * (Number(form.easy_pct)   || 0) / 100) : 0;
+            const mediumNeeded = hasDifficulty ? count - Math.floor(count * (Number(form.easy_pct) || 0) / 100) - Math.floor(count * (Number(form.hard_pct) || 0) / 100) : 0;
+            const hardNeeded   = hasDifficulty ? Math.floor(count * (Number(form.hard_pct)   || 0) / 100) : 0;
+            const totalShort   = entry && entry.total < count;
+
+            return (
+              <div key={i} className="rounded-xl border border-slate-200 p-3 space-y-2">
+                {/* Row controls */}
+                <div className="flex items-center gap-2">
+                  <select
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+                    value={row.subject_id}
+                    onChange={(e) => updateRow(i, 'subject_id', e.target.value)}
+                  >
+                    <option value="">Select subject</option>
+                    {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <input
+                    type="number" min={1}
+                    className={`w-24 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue ${
+                      totalShort ? 'border-red-300 bg-red-50' : 'border-slate-300'
+                    }`}
+                    value={row.count}
+                    onChange={(e) => updateRow(i, 'count', e.target.value)}
+                    placeholder="Count"
+                  />
+                  {form.subject_rows.length > 1 && (
+                    <button type="button" onClick={() => removeRow(i)} className="text-slate-300 hover:text-red-500 text-lg leading-none px-1">×</button>
+                  )}
+                </div>
+
+                {/* Pool stats for this subject */}
+                {entry && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] text-slate-400 mr-0.5">Available:</span>
+                    {hasDifficulty ? (
+                      <>
+                        <PoolPill label="Easy"   count={entry.easy}   needed={easyNeeded}   color="#16a34a" />
+                        <PoolPill label="Medium" count={entry.medium} needed={mediumNeeded} color="#d97706" />
+                        <PoolPill label="Hard"   count={entry.hard}   needed={hardNeeded}   color="#dc2626" />
+                        {entry.unset > 0 && <PoolPill label="Unset" count={entry.unset} needed={0} color="#94a3b8" />}
+                      </>
+                    ) : (
+                      <>
+                        <PoolPill label="Easy"   count={entry.easy}   needed={0} color="#16a34a" />
+                        <PoolPill label="Medium" count={entry.medium} needed={0} color="#d97706" />
+                        <PoolPill label="Hard"   count={entry.hard}   needed={0} color="#dc2626" />
+                        {entry.unset > 0 && <PoolPill label="Unset" count={entry.unset} needed={0} color="#94a3b8" />}
+                      </>
+                    )}
+                    <span className={`text-[10px] font-bold ml-1 ${totalShort ? 'text-red-500' : 'text-slate-500'}`}>
+                      Total: {entry.total} {totalShort ? `⚠ need ${count}` : '✓'}
+                    </span>
+                  </div>
+                )}
+                {row.subject_id && !entry && (
+                  <p className="text-[10px] text-slate-400 italic">Loading pool data…</p>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Difficulty distribution */}
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-2">Difficulty Distribution (optional — must total 100%)</label>
+        <label className="block text-xs font-medium text-slate-600 mb-1">
+          Difficulty Distribution <span className="text-slate-400 font-normal">(optional — must total 100%)</span>
+        </label>
+        <p className="text-[10px] text-slate-400 mb-2">
+          If set, the system will pick questions by difficulty ratio. Any shortfall is automatically backfilled from remaining questions in the same subject.
+        </p>
         <div className="flex items-center gap-3">
           <div className="flex-1 grid grid-cols-3 gap-2">
             {[
-              { key: 'easy_pct', label: 'Easy %', color: '#22c55e' },
-              { key: 'medium_pct', label: 'Medium %', color: '#f59e0b' },
-              { key: 'hard_pct', label: 'Hard %', color: '#ef4444' },
+              { key: 'easy_pct',   label: 'Easy %',   color: '#16a34a' },
+              { key: 'medium_pct', label: 'Medium %', color: '#d97706' },
+              { key: 'hard_pct',   label: 'Hard %',   color: '#dc2626' },
             ].map(({ key, label, color }) => (
               <div key={key} className="space-y-1">
-                <label className="text-[10px] font-medium" style={{ color }}>{label}</label>
+                <label className="text-[10px] font-semibold" style={{ color }}>{label}</label>
                 <input
-                  type="number"
-                  min={0}
-                  max={100}
+                  type="number" min={0} max={100}
                   className="w-full px-2 py-1.5 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
                   value={form[key]}
                   onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
@@ -206,6 +274,12 @@ const DynamicForm = ({ form, setForm, subjects }) => {
         {pctTotal > 0 && pctTotal !== 100 && (
           <p className="text-xs text-red-500 mt-1">Total is {pctTotal}% — must equal 100%</p>
         )}
+        {pctTotal === 100 && (
+          <p className="text-xs text-green-600 mt-1">✓ Difficulty distribution set</p>
+        )}
+        {pctTotal === 0 && (
+          <p className="text-[10px] text-slate-400 mt-1">Leave all at 0 to pick questions without difficulty filtering.</p>
+        )}
       </div>
     </div>
   );
@@ -213,9 +287,11 @@ const DynamicForm = ({ form, setForm, subjects }) => {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export const AdminMockTests = () => {
+  const location = useLocation();
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subjects, setSubjects] = useState([]);
+  const [pool, setPool] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [tab, setTab] = useState('fixed'); // 'fixed' | 'dynamic'
   const [fixedForm, setFixedForm] = useState(EMPTY_FIXED);
@@ -232,17 +308,63 @@ export const AdminMockTests = () => {
 
   const load = useCallback(async () => {
     try {
-      const [mtRes, subRes] = await Promise.all([getMockTests(), getSubjects()]);
-      setTests(mtRes.data?.data ?? mtRes.data ?? []);
+      const [mtRes, subRes, poolRes] = await Promise.all([
+        getMockTests(),
+        getSubjects(),
+        getQuestionPool().catch(() => ({ data: [] })),
+      ]);
+      const loadedTests = mtRes.data?.data ?? mtRes.data ?? [];
+      setTests(loadedTests);
       setSubjects(subRes.data?.data ?? subRes.data ?? []);
+      setPool(poolRes.data ?? []);
+
+      // Auto-open edit modal if navigated back from detail page with editId
+      const editId = location.state?.editId;
+      if (editId) {
+        const target = loadedTests.find(t => t.id === editId);
+        if (target) {
+          // openEdit needs subjects loaded — call inline here
+          const subs = subRes.data?.data ?? subRes.data ?? [];
+          if (target.test_type === 'dynamic') {
+            const cfg = target.configuration_json ?? {};
+            setDynamicForm({
+              title: target.title, description: target.description ?? '',
+              duration_minutes: target.duration_minutes ?? 60, total_marks: target.total_marks ?? 100,
+              randomize_options: target.randomize_options ?? false,
+              subject_rows: cfg.subjects?.length ? cfg.subjects.map(s => ({ subject_id: s.subject_id, count: s.count })) : [{ subject_id: '', count: 10 }],
+              easy_pct: cfg.difficulty?.easy ?? '', medium_pct: cfg.difficulty?.medium ?? '', hard_pct: cfg.difficulty?.hard ?? '',
+            });
+            setTab('dynamic');
+          } else {
+            setFixedForm({
+              title: target.title, description: target.description ?? '',
+              duration_minutes: target.duration_minutes ?? 60, total_marks: target.total_marks ?? 100,
+              randomize_questions: target.randomize_questions ?? false, randomize_options: target.randomize_options ?? false,
+              starts_at: target.starts_at?.slice(0, 16) ?? '', ends_at: target.ends_at?.slice(0, 16) ?? '',
+            });
+            setTab('fixed');
+          }
+          setEditTarget(target);
+          setModalOpen(true);
+          // Clear the navigation state so re-visits don't re-open the modal
+          window.history.replaceState({}, '');
+        }
+      }
     } catch {
       showToast('error', 'Failed to load');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [location.state?.editId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const refreshPool = async () => {
+    try {
+      const res = await getQuestionPool();
+      setPool(res.data ?? []);
+    } catch { /* pool is optional — silent fail */ }
+  };
 
   const openCreate = () => {
     setEditTarget(null);
@@ -250,10 +372,12 @@ export const AdminMockTests = () => {
     setDynamicForm(EMPTY_DYNAMIC);
     setTab('fixed');
     setModalOpen(true);
+    refreshPool();
   };
 
   const openEdit = (t) => {
     setEditTarget(t);
+    refreshPool();
     if (t.test_type === 'dynamic') {
       const cfg = t.configuration_json ?? {};
       setDynamicForm({
@@ -398,7 +522,7 @@ export const AdminMockTests = () => {
 
         {tab === 'fixed'
           ? <FixedForm form={fixedForm} setForm={setFixedForm} />
-          : <DynamicForm form={dynamicForm} setForm={setDynamicForm} subjects={subjects} />}
+          : <DynamicForm form={dynamicForm} setForm={setDynamicForm} subjects={subjects} pool={pool} />}
       </Modal>
 
       <div className="p-6 max-w-7xl mx-auto space-y-5">

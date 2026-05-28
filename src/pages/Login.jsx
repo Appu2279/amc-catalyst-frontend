@@ -1,4 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
+import { Toast } from '@/components/ui/Toast';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Fingerprint, Lock, Mail, Stethoscope } from 'lucide-react';
 import { useState } from 'react';
@@ -6,33 +7,62 @@ import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/userService';
 
 export const Login = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [toast, setToast]       = useState(null);
+
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+
+  const showToast = (type, message) => setToast({ type, message });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!email.trim()) {
+      showToast('error', 'Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      showToast('error', 'Please enter your password.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const response = await loginUser({ email, password });
+      const response = await loginUser({ email: email.trim(), password });
       const { user, token } = response.data;
       login(user, token);
       navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
+    } catch (err) {
+      const status  = err?.response?.status;
+      const message = err?.response?.data?.message;
+
+      if (status === 401 || status === 400) {
+        showToast('error', message || 'Incorrect email or password. Please try again.');
+      } else if (status === 404) {
+        showToast('error', 'No account found with that email address.');
+      } else if (!navigator.onLine) {
+        showToast('error', 'You appear to be offline. Check your connection.');
+      } else {
+        showToast('error', message || 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-col md:flex-row font-sans selection:bg-brand-violet/10">
-      
-      {/* --- Left Side: Aesthetic Branding (Visible on MD+) --- */}
+
+      <Toast toast={toast} onClose={() => setToast(null)} />
+
+      {/* Left Side: Branding */}
       <div className="hidden md:flex md:w-1/2 bg-slate-50 relative items-center justify-center p-12 overflow-hidden border-r border-slate-100">
-        {/* Subtle Decorative Grid */}
         <div className="absolute inset-0 [background:radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
-        
         <div className="relative z-10 max-w-sm text-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             className="w-20 h-20 bg-white rounded-3xl shadow-xl shadow-slate-200 flex items-center justify-center mx-auto mb-8 border border-slate-100"
@@ -46,18 +76,17 @@ export const Login = () => {
           <p className="text-slate-500 leading-relaxed font-medium">
             Join thousands of doctors mastering the AMC through our high-yield structured programs.
           </p>
-          
           <div className="mt-12 flex items-center justify-center gap-4 text-xs font-bold text-brand-gold uppercase tracking-[0.2em]">
-            <span className="w-8 h-[1px] bg-brand-gold/30"></span>
+            <span className="w-8 h-[1px] bg-brand-gold/30" />
             Premium Medical Education
-            <span className="w-8 h-[1px] bg-brand-gold/30"></span>
+            <span className="w-8 h-[1px] bg-brand-gold/30" />
           </div>
         </div>
       </div>
 
-      {/* --- Right Side: Clean Login Form --- */}
+      {/* Right Side: Form */}
       <div className="flex-1 flex flex-col justify-center p-8 md:p-16 lg:p-24 relative">
-        
+
         {/* Top Navigation */}
         <div className="absolute top-8 left-8 right-8 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-slate-400 hover:text-brand-dark transition-colors font-bold text-xs uppercase tracking-widest">
@@ -68,7 +97,7 @@ export const Login = () => {
           </Link>
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="max-w-md w-full mx-auto"
@@ -125,9 +154,19 @@ export const Login = () => {
                 whileHover={{ y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="w-full bg-brand-dark text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-2xl shadow-slate-200 hover:bg-brand-violet transition-all"
+                disabled={loading}
+                className="w-full bg-brand-dark text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-3 shadow-2xl shadow-slate-200 hover:bg-brand-violet transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Access Dashboard <ArrowRight className="w-5 h-5" />
+                {loading ? (
+                  <>
+                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Signing in…
+                  </>
+                ) : (
+                  <>
+                    Access Dashboard <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </motion.button>
             </div>
 

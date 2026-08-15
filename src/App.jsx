@@ -14,6 +14,7 @@ import { Pricing } from '@/pages/Pricing';
 import { Contact } from '@/pages/Contact';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
+import { RegistrationSuccess } from '@/pages/RegistrationSuccess';
 
 // User dashboard pages
 import { Dashboard } from '@/pages/Dashboard';
@@ -78,8 +79,12 @@ export const App = () => (
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
 
         {/* Auth */}
+        {/* Pre-registration launch: no Log In button links here any more, but the route
+            stays reachable by direct URL so the team can still get into /admin, and so
+            the 401 handler and ProtectedRoute have somewhere to redirect to. */}
         <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
         <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+        <Route path="/registration-success" element={<RegistrationSuccess />} />
 
         {/* User dashboard */}
         <Route element={<ProtectedRoute />}>

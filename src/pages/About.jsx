@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
-import { Users, Award, Globe, Heart, Sparkles, Plus, Stethoscope, ChevronDown } from 'lucide-react';
+import { Users, ListChecks, Globe, Heart, Plus, Stethoscope, ChevronDown, Ship } from 'lucide-react';
 
 const Page = ({ children, index, total, bgColor = "bg-white" }) => {
   const container = useRef(null);
@@ -60,12 +60,26 @@ export const About = () => {
               <span className="text-xs font-black uppercase tracking-[0.4em]">The New Standard</span>
             </div>
             
-            <h1 className="text-7xl md:text-[10vw] font-black text-brand-dark tracking-tighter leading-[0.75] mb-12">
+            <h1 className="text-7xl md:text-[10vw] font-black text-brand-dark tracking-tighter leading-[0.75] mb-10">
               Medicine <br />
               <span className="text-gradient-brand italic">Refined.</span>
             </h1>
 
-            <div className="flex flex-col md:flex-row gap-12 items-start md:items-center mt-16">
+            {/* Motto — echoes the ship in the logo, so it sits right under the headline */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+              className="flex items-center gap-4"
+            >
+              <Ship className="w-5 h-5 shrink-0 text-brand-gold" />
+              <div className="h-px w-8 shrink-0 bg-brand-gold/40" />
+              <p className="text-xl md:text-3xl font-black tracking-tight italic text-brand-dark">
+                Sailing minds to <span className="text-gradient-brand">Australian Medicine</span>.
+              </p>
+            </motion.div>
+
+            <div className="flex flex-col md:flex-row gap-12 items-start md:items-center mt-14">
               <p className="text-xl text-slate-400 font-medium leading-relaxed max-w-sm">
                 Bridging the gap between global expertise and Australian healthcare.
               </p>
@@ -130,7 +144,7 @@ export const About = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { icon: <Users />, title: "Expert Faculty", desc: "Practicing consultants from top Australian teaching hospitals." },
-              { icon: <Award />, title: "Proven Track Record", desc: "Pass rates that double the national candidate average." },
+              { icon: <ListChecks />, title: "Complete Coverage", desc: "90% of the AMC Part 1 syllabus covered across 15 core subjects." },
               { icon: <Globe />, title: "Global Network", desc: "A connected ecosystem of medical excellence across 5 continents." }
             ].map((item, idx) => (
               <div
@@ -164,7 +178,20 @@ export const About = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1 }}
           >
-            <Sparkles className="w-16 h-16 text-brand-gold mx-auto mb-12" />
+            {/* The logo artwork is dark navy on transparent, so it needs a light
+                plate to stay legible against this section's dark background. */}
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.7, ease: 'easeOut' }}
+              className="mx-auto mb-12 w-32 h-32 md:w-40 md:h-40 rounded-[2rem] bg-white p-1 shadow-2xl shadow-brand-violet/20 ring-1 ring-white/20"
+            >
+              <img
+                src="/images/logo.png"
+                alt="AMC Catalyst"
+                className="w-full h-full object-contain"
+              />
+            </motion.div>
             <h2 className="text-7xl md:text-[12vw] font-black text-white tracking-tighter leading-none mb-16">
                Be the <br /> 
                <span className="text-brand-gold italic">Catalyst.</span>

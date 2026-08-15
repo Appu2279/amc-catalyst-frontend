@@ -1,25 +1,25 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Video, Users, Clock, Zap, Target, Sparkles } from 'lucide-react';
+import { BookOpen, FileText, ClipboardCheck, Clock, Zap, Target, Sparkles } from 'lucide-react';
 
 export const Features = () => {
   const features = [
     {
       icon: <BookOpen className="w-5 h-5" />,
-      title: "Extensive QBank",
-      description: "Over 5,000 MCQ questions tailored to the latest AMC CAT blueprint with detailed Australian guideline references.",
+      title: "Adaptive QBank",
+      description: "1 year of recall questions tailored to the latest AMC CAT blueprint with detailed Australian guideline references.",
       color: "var(--color-brand-violet)"
     },
     {
-      icon: <Video className="w-5 h-5" />,
-      title: "High-Yield Lectures",
-      description: "Comprehensive visual library covering complex Internal Medicine, Surgery, and Pediatrics.",
+      icon: <FileText className="w-5 h-5" />,
+      title: "High-Yield Notes",
+      description: "Condensed, exam-ready notes across 15 core subjects, from Internal Medicine and Surgery to Pediatrics and Psychiatry.",
       color: "var(--color-brand-blue)"
     },
     {
-      icon: <Users className="w-5 h-5" />,
-      title: "Clinical Roleplays",
-      description: "Interactive scenarios with peers or AI-powered patients to master communication and clinical skills.",
+      icon: <ClipboardCheck className="w-5 h-5" />,
+      title: "Exam Registration & Assistance",
+      description: "Step-by-step help through AMC registration — eligibility, documents and booking your exam date — with our team on hand throughout.",
       color: "var(--color-brand-gold)"
     },
     {

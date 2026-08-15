@@ -23,21 +23,20 @@ export const Contact = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900">Email</p>
-                    <p className="text-slate-600">support@amccatalyst.com</p>
-                    <p className="text-slate-600">sales@amccatalyst.com</p>
+                    <p className="text-slate-600">dr.solosailor@gmail.com</p>
+                    {/* <p className="text-slate-600">sales@amccatalyst.com</p> */}
                   </div>
                 </div>
-                <div className="flex items-start space-x-4">
+                {/* <div className="flex items-start space-x-4">
                   <div className="bg-brand-secondary/10 p-3 rounded-lg">
                     <Phone className="w-6 h-6 text-brand-secondary" />
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900">Phone</p>
                     <p className="text-slate-600">+61 2 1234 5678</p>
-                    <p className="text-slate-500 text-sm">Mon-Fri 9am-5pm AEST</p>
                   </div>
-                </div>
-                <div className="flex items-start space-x-4">
+                </div> */}
+                {/* <div className="flex items-start space-x-4">
                   <div className="bg-brand-secondary/10 p-3 rounded-lg">
                     <MapPin className="w-6 h-6 text-brand-secondary" />
                   </div>
@@ -46,7 +45,7 @@ export const Contact = () => {
                     <p className="text-slate-600">123 Medical Plaza</p>
                     <p className="text-slate-600">Sydney NSW 2000, Australia</p>
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

@@ -129,12 +129,12 @@ export const Login = () => {
 
               {/* Password */}
               <div className="group pt-4">
-                <div className="flex justify-between items-end mb-2">
+                {/* <div className="flex justify-between items-end mb-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] group-focus-within:text-brand-violet transition-colors">
                     Secure Password
                   </label>
                   <a href="#" className="text-[10px] font-bold text-slate-300 hover:text-brand-gold uppercase tracking-widest">Forgot?</a>
-                </div>
+                </div> */}
                 <div className="relative">
                   <Lock className="absolute left-0 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-brand-violet transition-colors" />
                   <input
@@ -168,11 +168,6 @@ export const Login = () => {
                   </>
                 )}
               </motion.button>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 pt-8 text-slate-300">
-              <Fingerprint className="w-5 h-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Secure Healthcare Portal</span>
             </div>
           </form>
         </motion.div>

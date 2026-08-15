@@ -68,9 +68,14 @@ export const Navbar = () => {
               </>
             ) : (
               <>
+                {/* Pre-registration launch: sign-in is hidden until the dashboard
+                    opens. Restore this block when accounts go live. The /login
+                    route still works by direct URL, for admin access. */}
+                {/*
                 <Link to="/login">
                   <Button variant="ghost" size="sm" className="hover:text-brand-blue">Log In</Button>
                 </Link>
+                */}
                 <Link to="/register">
                   <Button variant="gold" size="sm">Get Started</Button>
                 </Link>
@@ -121,9 +126,12 @@ export const Navbar = () => {
                 </>
               ) : (
                 <>
+                  {/* Hidden for the pre-registration launch — see desktop nav above. */}
+                  {/*
                   <Link to="/login" onClick={() => setIsOpen(false)}>
                     <Button className="w-full" variant="ghost">Log In</Button>
                   </Link>
+                  */}
                   <Link to="/register" onClick={() => setIsOpen(false)}>
                     <Button className="w-full" variant="primary">Get Started</Button>
                   </Link>

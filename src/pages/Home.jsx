@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
-  PlayCircle, Star, BookOpen, Zap, Target,
-  ArrowRight, Sparkles, Stethoscope, Award
+  PlayCircle, Star, BookOpen, FileText, Target,
+  ArrowRight, Sparkles, Stethoscope, ListChecks
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -37,9 +37,11 @@ const useCountUp = (start, end, duration = 2) => {
 
 export const Home = () => {
   // Custom hooks for each stat
-  const { count: doctorsCount, ref: doctorsRef } = useCountUp(0, 12000, 2);
-  const { count: mcqsCount, ref: mcqsRef } = useCountUp(0, 5000, 2);
-  const { count: passRate, ref: rateRef } = useCountUp(0, 98.5, 2);
+  const { count: doctorsCount, ref: doctorsRef } = useCountUp(0, 700, 2);
+  // Two instances: the hero badge and the stats bar scroll into view at
+  // different times, and each only counts up once its own ref is visible.
+  const { count: coverageBadge, ref: coverageBadgeRef } = useCountUp(0, 90, 2);
+  const { count: coverageStat, ref: coverageStatRef } = useCountUp(0, 90, 2);
 
   return (
     <div className="bg-white selection:bg-brand-violet/10">
@@ -75,12 +77,12 @@ export const Home = () => {
                     Get Started Free
                   </Button>
                 </Link>
-                <div className="flex items-center gap-3 group cursor-pointer">
+                {/* <div className="flex items-center gap-3 group cursor-pointer">
                   <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-brand-gold/10 transition-colors">
                     <PlayCircle className="w-5 h-5 text-brand-gold" />
                   </div>
                   <span className="text-xs font-bold text-brand-dark">Watch Demo</span>
-                </div>
+                </div> */}
               </div>
             </motion.div>
 
@@ -97,12 +99,15 @@ export const Home = () => {
                   alt="Medical Professional"
                 />
               </div>
-              <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-md border border-slate-100">
+              <div
+                ref={coverageBadgeRef}
+                className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-md border border-slate-100"
+              >
                 <div className="flex items-center gap-3">
-                  <Award className="w-5 h-5 text-brand-gold" />
+                  <ListChecks className="w-5 h-5 text-brand-gold" />
                   <div>
-                    <p className="text-lg font-black text-brand-dark">{passRate.toFixed(1)}%</p>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pass Rate</p>
+                    <p className="text-lg font-black text-brand-dark">{coverageBadge}%</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Topics Covered</p>
                   </div>
                 </div>
               </div>
@@ -119,13 +124,14 @@ export const Home = () => {
               <h3 className="text-3xl md:text-4xl font-black text-brand-dark">{doctorsCount.toLocaleString()}</h3>
               <p className="text-[10px] font-black text-brand-gold uppercase tracking-widest">Doctors Trained</p>
             </div>
-            <div ref={mcqsRef}>
-              <h3 className="text-3xl md:text-4xl font-black text-brand-dark">{mcqsCount.toLocaleString()}+</h3>
-              <p className="text-[10px] font-black text-brand-blue uppercase tracking-widest">MCQ Questions</p>
+            {/* No count-up here: the claim is the recency of the recalls, not a volume. */}
+            <div>
+              <h3 className="text-3xl md:text-4xl font-black text-brand-dark">1 Year</h3>
+              <p className="text-[10px] font-black text-brand-blue uppercase tracking-widest">Of Recall Questions</p>
             </div>
-            <div ref={rateRef}>
-              <h3 className="text-3xl md:text-4xl font-black text-brand-dark">{passRate.toFixed(1)}%</h3>
-              <p className="text-[10px] font-black text-brand-gold uppercase tracking-widest">Success Rate</p>
+            <div ref={coverageStatRef}>
+              <h3 className="text-3xl md:text-4xl font-black text-brand-dark">{coverageStat}%</h3>
+              <p className="text-[10px] font-black text-brand-gold uppercase tracking-widest">AMC Syllabus Covered</p>
             </div>
           </div>
         </div>
@@ -141,10 +147,10 @@ export const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[{
-              icon: <BookOpen />, title: "Adaptive QBank", desc: "5,000+ questions that adapt to your performance.",
+              icon: <BookOpen />, title: "Adaptive QBank", desc: "1 year of recall questions that adapt to your performance.",
               color: "brand-violet"
             }, {
-              icon: <Zap />, title: "High-Yield Lectures", desc: "200+ hours of focused video content.",
+              icon: <FileText />, title: "High-Yield Notes", desc: "Exam-ready notes across 15 core subjects.",
               color: "brand-blue"
             }, {
               icon: <Target />, title: "Mock Exams", desc: "Full simulations replicating real exam pressure.",

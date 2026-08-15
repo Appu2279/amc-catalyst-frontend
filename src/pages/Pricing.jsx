@@ -1,175 +1,228 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, Calendar, Check, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, ClipboardList, Globe, HelpCircle, MessageSquareText, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getCourses } from '../api/courseService';
-export const Pricing = () => {
-const [plans, setPlans] = useState([]);
- const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.2 }
-    }
-  };
 
-  const cardVariants = {
-    hidden: { y: 50, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
-      transition: { type: "spring", stiffness: 100, damping: 12 } 
-    }
-  };
+// Static supporting copy from the client's sheet — presentation only, so it is
+// not stored against any plan.
+const HIGHLIGHTS = [
+  { icon: ClipboardList,     title: '10 Months of Recalls', body: 'Extensive recall content with monthly additions.' },
+  { icon: BookOpen,          title: '3–5 Mock Exams',       body: 'Exam pattern based full-length mocks.' },
+  { icon: HelpCircle,        title: 'Subject-wise MCQs',    body: 'High-yield MCQs from major question banks.' },
+  { icon: Users,             title: 'Community & Support',  body: 'Telegram community, discussions & expert guidance.' },
+];
+
+const NOTES = [
+  {
+    icon: Globe,
+    title: 'International Pricing',
+    body: 'International pricing is 10% higher than the applicable India price.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Additional Access',
+    body: 'All subscriptions are for 6 months. Additional access can be purchased month-by-month after the initial subscription period.',
+  },
+];
+
+const inr = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
+
+// Accent per card position, following the client's layout: the two middle tiers
+// carry the emphasis, the standalone plan sits quieter on the end.
+const ACCENTS = {
+  'MOST POPULAR':    { ring: 'border-brand-violet', chip: 'bg-brand-violet text-white' },
+  'BEST VALUE':      { ring: 'border-brand-gold',   chip: 'bg-brand-gold text-white' },
+  'STANDALONE PLAN': { ring: 'border-slate-100',    chip: 'bg-brand-violet/10 text-brand-violet' },
+};
+
+const PlanCard = ({ course, index }) => {
+  const pricing = course.CoursePricings?.[0];
+  const accent = ACCENTS[course.badge] ?? { ring: 'border-slate-100', chip: '' };
+  const isFeatured = course.badge === 'MOST POPULAR' || course.badge === 'BEST VALUE';
+
+  // Ordering lives on the join row so the same feature can sit in different
+  // places on different cards.
+  const features = [...(course.Features ?? [])].sort(
+    (a, b) => (a.CourseFeature?.position ?? 0) - (b.CourseFeature?.position ?? 0)
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.08 }}
+      className={`relative flex flex-col rounded-[1.75rem] border-2 bg-white p-6 pt-8 ${accent.ring} ${
+        isFeatured ? 'shadow-[0_24px_48px_rgba(124,58,237,0.10)]' : 'shadow-sm'
+      }`}
+    >
+      {course.badge && (
+        <span
+          className={`absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-4 py-1 text-[10px] font-black uppercase tracking-widest ${accent.chip}`}
+        >
+          {course.badge}
+        </span>
+      )}
+
+      <h3 className="text-center text-xl font-black uppercase tracking-tight text-brand-violet">
+        {course.title}
+      </h3>
+
+      <div className="mt-5 text-center">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Early Bird</p>
+        <p className="text-4xl font-black tracking-tighter text-brand-dark">
+          {inr(pricing?.discounted_price)}
+        </p>
+        {pricing?.actual_price !== pricing?.discounted_price && (
+          <>
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+              Regular Price
+            </p>
+            <p className="text-sm font-bold text-slate-400 line-through">{inr(pricing?.actual_price)}</p>
+          </>
+        )}
+      </div>
+
+      <div className="my-6 h-px bg-slate-100" />
+
+      {/* Tiered plans list only their additions on top of the plan below them. */}
+      {course.inherits_from && (
+        <p className="mb-5 text-center text-sm font-medium text-slate-500">
+          Everything in {course.inherits_from.title}
+          <span className="mt-1 block text-xs font-black uppercase tracking-widest text-brand-violet">
+            Plus
+          </span>
+        </p>
+      )}
+
+      <ul className="flex-1 space-y-3">
+        {features.map((feature) =>
+          feature.CourseFeature?.highlight ? (
+            <li
+              key={feature.id}
+              className="rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-5 text-center"
+            >
+              <Sparkles className="mx-auto mb-2 h-5 w-5 text-brand-violet" />
+              <span className="text-sm font-bold text-brand-dark">{feature.name}</span>
+            </li>
+          ) : (
+            <li key={feature.id} className="flex items-start gap-2.5">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 stroke-[3] text-brand-violet" />
+              <span className="text-[13px] font-medium leading-snug text-slate-600">
+                {feature.name}
+              </span>
+            </li>
+          )
+        )}
+      </ul>
+
+      <Link to="/register" className="mt-7">
+        <button
+          className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-black transition-all ${
+            isFeatured
+              ? 'bg-brand-violet text-white shadow-lg shadow-brand-violet/20 hover:bg-brand-violet-hover'
+              : 'bg-brand-dark text-white hover:bg-brand-violet'
+          }`}
+        >
+          Enroll Now <ArrowRight className="h-4 w-4" />
+        </button>
+      </Link>
+    </motion.div>
+  );
+};
+
+export const Pricing = () => {
+  const [plans, setPlans] = useState([]);
+  const [error, setError] = useState(false);
+
   useEffect(() => {
-    const fetchPlans = async () => {
-    try {
-      const response = await getCourses();
-      const sortedCourses = [...response.data].sort(
-  (a, b) =>
-    (a.CoursePricings?.[0]?.discounted_price || 0) -
-    (b.CoursePricings?.[0]?.discounted_price || 0)
-);
-      setPlans(sortedCourses);
-    } catch (error) {
-      console.error('Error fetching plans:', error);
-    }
-  };
-  fetchPlans();
+    getCourses()
+      // The API already returns plans in card order (sort_order).
+      .then((response) => setPlans(response.data))
+      .catch((err) => {
+        console.error('Error fetching plans:', err);
+        setError(true);
+      });
   }, []);
 
   return (
- <div className="bg-white py-24 relative overflow-hidden">
-      {/* Ultra-subtle background detail */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold opacity-50" />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Compact Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-          <div className="max-w-2xl">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2 text-brand-violet font-bold text-sm tracking-widest uppercase mb-3"
-            >
-              <Sparkles className="w-4 h-4" /> Catalyst Programs 2024
-            </motion.div>
-            <h1 className="text-4xl md:text-5xl font-black text-brand-dark leading-tight">
-              Ready to <span className="text-gradient-brand">Master the AMC?</span>
-            </h1>
+    <div className="relative overflow-hidden bg-white py-24">
+      <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold opacity-50" />
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mx-auto max-w-2xl text-center">
+          <div className="mb-3 flex items-center justify-center gap-2 text-sm font-bold uppercase tracking-widest text-brand-violet">
+            <Sparkles className="h-4 w-4" /> Catalyst Programs
           </div>
-          <p className="text-slate-500 font-medium md:max-w-xs border-l-2 border-slate-100 pl-6">
-            Compare our structured paths and secure your early bird advantage.
+          <h1 className="text-4xl font-black leading-tight text-brand-dark md:text-5xl">
+            Ready to <span className="text-gradient-brand">Master the AMC?</span>
+          </h1>
+          <p className="mt-4 font-medium text-slate-500">
+            Complete AMC Part 1 preparation with Notes, Recalls, MCQs, Mocks and more.
           </p>
+          <span className="mt-8 inline-block rounded-full bg-brand-violet/10 px-6 py-2 text-xs font-black uppercase tracking-widest text-brand-violet">
+            All plans include 6 months of access
+          </span>
         </div>
 
-        {/* Pricing Grid */}
-        <div className="grid grid-cols-1 gap-6">
-          {plans.map((course, idx) => {
-            const pricing = course.CoursePricings?.[0];
-            const isEarlyBird = pricing?.is_early_bird;
+        {/* Plans */}
+        {error ? (
+          <p className="mt-16 text-center font-medium text-slate-400">
+            Plans are unavailable right now. Please try again shortly.
+          </p>
+        ) : (
+          <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+            {plans.map((course, idx) => (
+              <PlanCard key={course.id} course={course} index={idx} />
+            ))}
+          </div>
+        )}
 
-            return (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className={`group relative bg-white rounded-[2rem] border-2 transition-all duration-300 overflow-hidden ${
-                  isEarlyBird 
-                  ? 'border-brand-violet/20 shadow-[0_20px_40px_rgba(124,58,237,0.08)]' 
-                  : 'border-slate-100 hover:border-slate-200 shadow-sm'
-                }`}
-              >
-                {/* Early Bird Ribbon Tag */}
-                {isEarlyBird && (
-                  <div className="absolute top-0 right-0 overflow-hidden w-40 h-40 pointer-events-none">
-                    <div className="absolute top-[30px] right-[-35px] rotate-45 bg-brand-gold text-white text-[10px] font-black py-1.5 w-[180px] text-center shadow-lg tracking-widest uppercase">
-                      <Zap className="w-3 h-3 inline mr-1 fill-white" /> Early Bird Offer
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-6 md:p-8">
-                  <div className="flex flex-col lg:flex-row gap-8 lg:items-center">
-                    
-                    {/* Column 1: Core Info (Compact) */}
-                    <div className="lg:w-1/3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
-                          isEarlyBird ? 'bg-brand-violet/10 text-brand-violet' : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {course.duration_months} Months Access
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-black text-brand-dark group-hover:text-brand-violet transition-colors">
-                        {course.title}
-                      </h3>
-                      <p className="text-slate-500 text-sm mt-2 line-clamp-2">
-                        {course.description}
-                      </p>
-                      
-                      <div className="mt-6 flex items-baseline gap-3">
-                        <span className="text-4xl font-black text-brand-dark tracking-tighter">
-                          ₹{pricing?.discounted_price}
-                        </span>
-                        {pricing?.actual_price !== pricing?.discounted_price && (
-                          <span className="text-base text-slate-300 line-through">
-                            ₹{pricing?.actual_price}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Column 2: Features (2-Column Grid to save space) */}
-                    <div className="lg:w-5/12 grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 border-t lg:border-t-0 lg:border-x border-slate-100 pt-6 lg:pt-0 lg:px-8">
-                      {course.Features?.map((feature, fIdx) => (
-                        <div key={fIdx} className="flex items-center gap-2.5">
-                          <div className={`shrink-0 w-5 h-5 rounded-md flex items-center justify-center ${
-                            isEarlyBird ? 'bg-brand-violet/10 text-brand-violet' : 'bg-slate-50 text-slate-400'
-                          }`}>
-                            <Check className="w-3 h-3 stroke-[3]" />
-                          </div>
-                          <span className="text-[13px] font-medium text-slate-600 leading-tight">
-                            {feature.name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Column 3: Action & Benefits */}
-                    <div className="lg:w-1/4 flex flex-col gap-4">
-                      <button className={`w-full py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${
-                        isEarlyBird 
-                        ? 'bg-brand-violet text-white hover:bg-brand-violet-hover shadow-lg shadow-brand-violet/20' 
-                        : 'bg-brand-dark text-white hover:bg-slate-800'
-                      }`}>
-                        Enroll Now <ArrowRight className="w-4 h-4" />
-                      </button>
-                      {course.Benefits?.map((benefit, bIdx) => (
-                        <div key={bIdx} className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-gold/5 rounded-lg">
-                          <ShieldCheck className="w-4 h-4 text-brand-gold" />
-                          <span className="text-[11px] font-bold text-brand-gold uppercase tracking-tight">
-                            {benefit.title}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
+        {/* Highlights */}
+        <div className="mt-16 grid grid-cols-1 gap-6 rounded-[1.75rem] border border-slate-100 bg-slate-50/50 p-8 sm:grid-cols-2 lg:grid-cols-4">
+          {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
+            <div key={title} className="flex gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-brand-violet shadow-sm">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-brand-dark">
+                  {title}
+                </h4>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{body}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Dynamic Footer for Trust */}
-        <div className="mt-12 flex flex-wrap justify-center gap-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
-            <Calendar className="w-4 h-4" /> Batch Starts Soon
-          </div>
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-400">
-            <Zap className="w-4 h-4" /> Instant Access
-          </div>
+        {/* Pricing notes */}
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {NOTES.map(({ icon: Icon, title, body }) => (
+            <div
+              key={title}
+              className="flex gap-4 rounded-[1.75rem] border border-slate-100 p-6"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-violet/10 text-brand-violet">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-black uppercase tracking-widest text-brand-dark">
+                  {title}
+                </h4>
+                <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500">{body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 flex items-center justify-center gap-4 text-slate-300">
+          <span className="h-px w-12 bg-slate-200" />
+          <p className="text-xs font-bold uppercase tracking-widest">
+            Early Bird offer is for a limited time only
+          </p>
+          <span className="h-px w-12 bg-slate-200" />
         </div>
       </div>
     </div>

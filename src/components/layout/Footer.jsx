@@ -46,9 +46,9 @@ export const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4 text-lg">Resources</h3>
             <ul className="space-y-3">
-              <li><a href="#" className="hover:text-brand-accent transition-colors">Study Guides</a></li>
+              {/* <li><a href="#" className="hover:text-brand-accent transition-colors">Study Guides</a></li>
               <li><a href="#" className="hover:text-brand-accent transition-colors">Webinars</a></li>
-              <li><a href="#" className="hover:text-brand-accent transition-colors">Blog</a></li>
+              <li><a href="#" className="hover:text-brand-accent transition-colors">Blog</a></li> */}
               <li><a href="#" className="hover:text-brand-accent transition-colors">FAQ</a></li>
             </ul>
           </div>
@@ -57,17 +57,17 @@ export const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4 text-lg">Contact Us</h3>
             <ul className="space-y-4">
-              <li className="flex items-start space-x-3">
+              {/* <li className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-brand-secondary shrink-0" />
                 <span>123 Medical Plaza, Sydney NSW 2000, Australia</span>
-              </li>
-              <li className="flex items-center space-x-3">
+              </li> */}
+              {/* <li className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-brand-secondary shrink-0" />
                 <span>+61 2 1234 5678</span>
-              </li>
+              </li> */}
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-brand-secondary shrink-0" />
-                <span>support@amccatalyst.com</span>
+                <span>dr.solosailor@gmail.com</span>
               </li>
             </ul>
           </div>

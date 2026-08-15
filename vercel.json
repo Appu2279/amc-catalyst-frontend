@@ -2,7 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
-      "comment": "Client-side routing: React Router owns /register, /pricing and the rest, and there are no files at those paths. Vercel serves real files first, so assets under /images are unaffected. Without this, opening a link directly (rather than navigating from the home page) returns a 404.",
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -33,6 +33,9 @@ import { AdminImportBatches } from '@/pages/admin/AdminImportBatches';
 import { AdminMockTests } from '@/pages/admin/AdminMockTests';
 import { AdminMockTestDetail } from '@/pages/admin/AdminMockTestDetail';
 import { AdminCourses } from '@/pages/admin/AdminCourses';
+import { AdminNotes } from '@/pages/admin/AdminNotes';
+import { LegalPage } from '@/pages/LegalPage';
+import { TERMS, PRIVACY } from '@/content/legal';
 
 const PublicLayout = ({ children }) => (
   <div className="flex flex-col min-h-screen">
@@ -78,6 +81,12 @@ export const App = () => (
         <Route path="/pricing" element={<PublicLayout><Pricing /></PublicLayout>} />
         <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
 
+        {/* Legal — linked from the footer, the register consent line, and each
+            other. Public on purpose: a visitor must be able to read the terms
+            before creating an account. */}
+        <Route path="/terms" element={<PublicLayout><LegalPage doc={TERMS} /></PublicLayout>} />
+        <Route path="/privacy" element={<PublicLayout><LegalPage doc={PRIVACY} /></PublicLayout>} />
+
         {/* Auth */}
         {/* Pre-registration launch: no Log In button links here any more, but the route
             stays reachable by direct URL so the team can still get into /admin, and so
@@ -106,6 +115,7 @@ export const App = () => (
           <Route path="/admin/mock-tests" element={<AdminMockTests />} />
           <Route path="/admin/mock-tests/:id" element={<AdminMockTestDetail />} />
           <Route path="/admin/courses" element={<AdminCourses />} />
+          <Route path="/admin/notes" element={<AdminNotes />} />
         </Route>
       </Routes>
     </AuthProvider>

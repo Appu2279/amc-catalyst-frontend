@@ -14,6 +14,9 @@ export const createImportBatch = (data) => axiosInstance.post('/admin/import-bat
 export const getImportBatch = (id) => axiosInstance.get(`/admin/import-batches/${id}`);
 export const approveImportBatch = (id) => axiosInstance.post(`/admin/import-batches/${id}/approve`);
 export const deleteImportBatch = (id) => axiosInstance.delete(`/admin/import-batches/${id}`);
+// Show/hide a whole batch for students. Reversible — nothing is deleted.
+export const setBatchVisibility = (id, is_visible) =>
+  axiosInstance.patch(`/admin/import-batches/${id}/visibility`, { is_visible });
 
 // Mock Tests
 export const getMockTests = () => axiosInstance.get('/admin/mock-tests');
@@ -53,3 +56,29 @@ export const deleteFeature = (id) => axiosInstance.delete(`/features/${id}`);
 export const getBenefits = () => axiosInstance.get('/benefits');
 export const createBenefit = (data) => axiosInstance.post('/benefits', data);
 export const deleteBenefit = (id) => axiosInstance.delete(`/benefits/${id}`);
+
+// ── Notes ─────────────────────────────────────────────────────────────────────
+export const getNotesAdmin = () => axiosInstance.get('/notes/admin');
+
+/**
+ * Uploads a note PDF.
+ *
+ * Content-Type is set to null on purpose. The shared instance defaults to
+ * application/json, and axios would then JSON-stringify the FormData instead of
+ * sending the file. Nulling it drops the header entirely so the browser sets
+ * multipart/form-data with the boundary multer needs — setting the string
+ * 'multipart/form-data' by hand does NOT work, because it arrives without a
+ * boundary and the upload fails to parse.
+ *
+ * The default 10s timeout is also lifted: this is a whole PDF on whatever
+ * connection the admin happens to be on.
+ */
+export const uploadNote = (formData, onUploadProgress) =>
+  axiosInstance.post('/notes/admin', formData, {
+    headers: { 'Content-Type': null },
+    timeout: 300000,
+    onUploadProgress,
+  });
+
+export const updateNoteAdmin = (id, data) => axiosInstance.put(`/notes/admin/${id}`, data);
+export const deleteNoteAdmin = (id) => axiosInstance.delete(`/notes/admin/${id}`);

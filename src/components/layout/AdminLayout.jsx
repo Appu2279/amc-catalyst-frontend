@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard, BookOpen, HelpCircle, Upload,
-  ClipboardList, GraduationCap, LogOut, Menu, X,
+  ClipboardList, GraduationCap, LogOut, Menu, X, FileText,
 } from 'lucide-react';
 import { getMockTests } from '@/api/adminService';
 
@@ -14,6 +14,7 @@ const NAV = [
   { path: '/admin/import-batches', label: 'Import Batches', icon: Upload },
   { path: '/admin/mock-tests', label: 'Mock Tests', icon: ClipboardList },
   { path: '/admin/courses', label: 'Courses', icon: GraduationCap },
+  { path: '/admin/notes', label: 'Notes', icon: FileText },
 ];
 
 const Toast = ({ toast }) => {

@@ -57,7 +57,11 @@ export const DashboardLayout = ({ children, active }) => {
             <NotebookPen className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">Notes</span>
           </Link>
-          <Link
+          {/* QBank — hidden from navigation for now. The /qbank route still
+              works, so a direct link keeps working; only the nav entry is gone.
+              Also commented out of the mobile bottom nav below, so the two stay
+              in step. */}
+          {/* <Link
             to="/qbank"
             className={`flex items-center px-4 py-3 rounded-lg group transition-colors ${
               (active === "qbank" || location.pathname === "/qbank")
@@ -67,7 +71,7 @@ export const DashboardLayout = ({ children, active }) => {
           >
             <BookOpen className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">QBank</span>
-          </Link>
+          </Link> */}
           <Link to="/recall" className="flex items-center px-4 py-3 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg group transition-colors">
             <UndoDotIcon className="w-5 h-5 mr-3 text-slate-400 group-hover:text-slate-500" />
             <span className="font-medium">Recall</span>
@@ -147,7 +151,8 @@ export const DashboardLayout = ({ children, active }) => {
             <NotebookPen className="w-5 h-5" />
             <span className="text-[10px] font-medium">Notes</span>
           </Link>
-          <Link
+          {/* QBank — hidden to match the desktop sidebar above. */}
+          {/* <Link
             to="/qbank"
             className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${
               active === 'qbank' || location.pathname === '/qbank'
@@ -157,7 +162,7 @@ export const DashboardLayout = ({ children, active }) => {
           >
             <BookOpen className="w-5 h-5" />
             <span className="text-[10px] font-medium">QBank</span>
-          </Link>
+          </Link> */}
           <Link
             to="/recall"
             className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors ${

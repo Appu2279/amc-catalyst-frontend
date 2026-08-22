@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
-import { getQuestions, getSubjectsPublic, checkAnswer } from '@/api/userService';
+import { getQuestions, getSubjectsPublic, checkAnswer, getPracticeProgress, resetPracticeProgress, getQuestionBatches } from '@/api/userService';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
-import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb } from 'lucide-react';
+import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb, Layers, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 const DIFFICULTIES = ['', 'easy', 'medium', 'hard'];
 
@@ -56,7 +56,23 @@ export const Recall = () => {
   const [checking, setChecking]       = useState(false); // API call in-flight
   const [checked, setChecked]         = useState(false);
   const [checkResult, setCheckResult] = useState(null);  // response from /check endpoint
-  const [score, setScore]             = useState({ correct: 0, wrong: 0 });
+  // question_id -> is_correct, seeded from the server so it survives a logout.
+  // Score is derived from this rather than counted up as the student answers:
+  // a counter would double-count a question answered twice in one sitting, and
+  // would reset to zero on every visit.
+  const [answered, setAnswered]       = useState({});
+  const [resuming, setResuming]       = useState(false);
+  // Two-step confirm: clearing progress is not undoable, and a stray click on a
+  // single button would wipe a student's place in a 146-question set.
+  // Recall is grouped by the month it was uploaded ("August Recall 2026").
+  // batchId null means the batches have not loaded yet; questions wait for it so
+  // the student never briefly sees every month mixed together.
+  const [batches, setBatches]         = useState([]);
+  const [batchId, setBatchId]         = useState(null);
+  const [batchesLoaded, setBatchesLoaded] = useState(false);
+
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting]     = useState(false);
   const [filters, setFilters]         = useState({ subject_id: '', difficulty: '' });
   const [showFilters, setShowFilters] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
@@ -67,6 +83,28 @@ export const Recall = () => {
       .catch(() => {});
   }, []);
 
+  // A batch the admin has hidden never reaches this list, so there is nothing
+  // to filter here.
+  const loadBatches = useCallback(() => {
+    return getQuestionBatches({ source_type: 'recall' })
+      .then(res => {
+        setBatches(res.data?.data ?? []);
+        // The picker is always shown, even for a single set — Notes and Mock
+        // Exams both list one item rather than skipping their chooser, and
+        // recall sets accumulate month by month, so the screen a student learns
+        // today is the one they keep using.
+      })
+      .catch(() => setBatches([]))
+      .finally(() => setBatchesLoaded(true));
+  }, []);
+
+  // Re-fetched every time the student lands on the picker, not just on mount:
+  // the cards show how far through each set they are, and coming back from
+  // answering questions must not show the counts from before they started.
+  useEffect(() => {
+    if (batchId === null) loadBatches();
+  }, [batchId, loadBatches]);
+
   const loadQuestions = useCallback(async () => {
     setLoading(true);
     setCurrentIdx(0);
@@ -75,19 +113,69 @@ export const Recall = () => {
     setCheckResult(null);
     try {
       const params = { source_type: 'recall', limit: 500, is_active: true };
+      if (batchId) params.import_batch_id = batchId;
       if (filters.subject_id) params.subject_id = filters.subject_id;
       if (filters.difficulty) params.difficulty = filters.difficulty;
-      const res = await getQuestions(params);
-      console.log('Loaded questions:', res.data);
-      setQuestions(res.data?.data ?? []);
-      setTotal(res.data?.pagination?.total ?? 0);
+
+      // Fetched together so the first question shown is already the resume
+      // point — loading them in sequence would render question 1 first and then
+      // visibly jump.
+      const [questionRes, progressRes] = await Promise.all([
+        getQuestions(params),
+        // Progress must not be able to break practice: if it fails the student
+        // simply starts from the beginning.
+        // Scoped to the same batch, so "answered 10 of 40" counts this month
+        // rather than every recall the student has ever done.
+        getPracticeProgress({ source_type: 'recall', ...(batchId ? { import_batch_id: batchId } : {}) })
+          .catch(() => null),
+      ]);
+
+      const list = questionRes.data?.data ?? [];
+      setQuestions(list);
+      setTotal(questionRes.data?.pagination?.total ?? 0);
+
+      const progress = progressRes?.data?.data;
+      const answeredMap = Object.fromEntries(
+        (progress?.answers ?? []).map((a) => [a.question_id, Boolean(a.is_correct)])
+      );
+      setAnswered(answeredMap);
+
+      // Resume at the first question this student has not answered. Derived
+      // from the list actually on screen, so it stays right when questions are
+      // added or a filter narrows the set.
+      //
+      // Tests for the KEY, not the value: the map holds is_correct, so
+      // `!answeredMap[id]` would treat every wrongly-answered question as
+      // unanswered and resume there instead of moving past it.
+      const firstUnanswered = list.findIndex((q) => !(q.id in answeredMap));
+      // Everything answered: leave them at the start rather than stranded on a
+      // question they have already done.
+      const resumeAt = firstUnanswered === -1 ? 0 : firstUnanswered;
+      setCurrentIdx(resumeAt);
+      setResuming(resumeAt > 0);
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [filters]);
+  }, [filters, batchId]);
 
-  useEffect(() => { loadQuestions(); }, [loadQuestions]);
+  useEffect(() => {
+    // Nothing is fetched until a batch is chosen: the student is on the picker,
+    // and loading every month behind it would be wasted work.
+    if (batchesLoaded && batchId !== null) loadQuestions();
+  }, [loadQuestions, batchesLoaded, batchId]);
 
   const q = questions[currentIdx];
+
+  // Restricted to the questions currently listed, so the tally matches the
+  // "of N" the student is looking at when a filter is applied.
+  const score = useMemo(() => {
+    let correct = 0;
+    let wrong = 0;
+    for (const item of questions) {
+      if (!(item.id in answered)) continue;
+      answered[item.id] ? correct++ : wrong++;
+    }
+    return { correct, wrong };
+  }, [questions, answered]);
 
   // These come from the /check response — never sent with the question list
   const isCorrect = checkResult?.is_correct;
@@ -108,10 +196,9 @@ export const Recall = () => {
       const result = res.data?.data ?? res.data;
       setCheckResult(result);
       setChecked(true);
-      setScore(s => ({
-        correct: s.correct + (result.is_correct ? 1 : 0),
-        wrong:   s.wrong   + (result.is_correct ? 0 : 1),
-      }));
+      // The server records this too — this keeps the on-screen tally in step
+      // without re-fetching progress after every answer.
+      setAnswered(prev => ({ ...prev, [q.id]: Boolean(result.is_correct) }));
     } catch {
       setSelectedId(null); // undo selection so student can retry
     } finally {
@@ -119,9 +206,30 @@ export const Recall = () => {
     }
   };
 
+  const handleStartOver = async () => {
+    setResetting(true);
+    try {
+      await resetPracticeProgress({ source_type: 'recall', ...(batchId ? { import_batch_id: batchId } : {}) });
+      // Reset locally rather than re-fetching: the server is now empty for this
+      // mode, so a round trip would only tell us what we already know.
+      setAnswered({});
+      setCurrentIdx(0);
+      setSelectedId(null);
+      setChecked(false);
+      setCheckResult(null);
+      setResuming(false);
+      setConfirmReset(false);
+    } catch {
+      // Left on screen with the confirm still open so the student can retry.
+    } finally {
+      setResetting(false);
+    }
+  };
+
   const go = (dir) => {
     const next = currentIdx + dir;
     if (next < 0 || next >= questions.length) return;
+    setResuming(false);
     setCurrentIdx(next);
     setSelectedId(null);
     setChecked(false);
@@ -164,7 +272,9 @@ export const Recall = () => {
 
       {(score.correct + score.wrong) > 0 && (
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Session Score</p>
+          {/* Not "Session Score" any more — it is kept on the server and
+              survives logging out, so it is the student's running total. */}
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Your Score</p>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 text-sm font-semibold text-green-600">
               <Check className="w-4 h-4" /> {score.correct}
@@ -172,18 +282,126 @@ export const Recall = () => {
             <span className="flex items-center gap-1 text-sm font-semibold text-red-500">
               <X className="w-4 h-4" /> {score.wrong}
             </span>
+            <span className="ml-auto text-[11px] text-slate-400 tabular-nums">
+              {score.correct + score.wrong}/{questions.length}
+            </span>
+          </div>
+
+          {confirmReset ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Clear your answers and start from question 1? This cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleStartOver}
+                  disabled={resetting}
+                  className="flex-1 px-2 py-1.5 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {resetting ? 'Clearing…' : 'Yes, start over'}
+                </button>
+                <button
+                  onClick={() => setConfirmReset(false)}
+                  disabled={resetting}
+                  className="flex-1 px-2 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
-              onClick={() => setScore({ correct: 0, wrong: 0 })}
-              className="ml-auto p-1 text-slate-400 hover:text-slate-600"
-              title="Reset"
+              onClick={() => setConfirmReset(true)}
+              className="mt-3 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
+              Start over
             </button>
-          </div>
+          )}
         </div>
       )}
     </div>
   );
+
+  // ── Batch picker ────────────────────────────────────────────────────────────
+  // Shown until a recall month is chosen, matching how Mock Exams and Notes ask
+  // the student to pick something before the content opens.
+  if (batchesLoaded && batchId === null) {
+    return (
+      <DashboardLayout active="recall">
+        <div className="min-h-full bg-slate-50 py-6 px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-slate-900">Recall Practice</h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Questions recalled by past candidates, grouped by exam sitting.
+              </p>
+            </div>
+
+            {batches.length === 0 ? (
+              <div className="text-center py-24">
+                <Layers className="w-14 h-14 text-slate-200 mx-auto mb-4" />
+                <p className="text-slate-400">No recall sets are available yet.</p>
+                <p className="text-slate-300 text-sm mt-1">Check back soon!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {batches.map(b => {
+                  const done = b.answered_count ?? 0;
+                  const pct = b.question_count ? Math.round((done / b.question_count) * 100) : 0;
+                  const complete = done > 0 && done >= b.question_count;
+
+                  return (
+                    <div
+                      key={b.id ?? 'other'}
+                      className="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <h2 className="text-base font-semibold text-slate-900 leading-snug">{b.title}</h2>
+                        {complete && (
+                          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                            <CheckCircle2 className="w-3 h-3" /> Completed
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
+                        <span className="flex items-center gap-1.5">
+                          <Layers className="w-4 h-4" /> {b.question_count} questions
+                        </span>
+                        {done > 0 && (
+                          <span className="tabular-nums">{done} answered</span>
+                        )}
+                      </div>
+
+                      {done > 0 && (
+                        <div className="mb-5">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5">
+                            <div
+                              className="bg-brand-blue h-1.5 rounded-full transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => setBatchId(b.id)}
+                        className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
+                      >
+                        {done > 0 && !complete ? 'Continue' : done > 0 ? 'Practise again' : 'Start practising'}
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout active="recall">
@@ -234,6 +452,34 @@ export const Recall = () => {
             </div>
           )} */}
 
+          {/* Which set is open, and the way back to the picker. */}
+          {batches.length > 0 && (
+            <div className="bg-white border-b border-slate-200 px-3 md:px-5 py-2.5 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setBatchId(null);
+                  // Cleared so the picker cannot briefly show the previous set's
+                  // questions behind it on the way out.
+                  setQuestions([]);
+                  setCurrentIdx(0);
+                  setSelectedId(null);
+                  setChecked(false);
+                  setCheckResult(null);
+                  setResuming(false);
+                  setConfirmReset(false);
+                }}
+                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                All recall sets
+              </button>
+              <span className="w-px h-4 bg-slate-200" />
+              <span className="text-xs font-semibold text-slate-700 truncate">
+                {batches.find(b => b.id === batchId)?.title ?? 'Recall'}
+              </span>
+            </div>
+          )}
+
           {/* Question area */}
           <div className="flex-1 overflow-y-auto p-3 md:p-5">
             {loading ? (
@@ -247,12 +493,60 @@ export const Recall = () => {
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
 
+                {/* Resumed-from-last-time notice. Shown only until the student
+                    moves, so it explains why practice did not open on question 1
+                    without becoming permanent furniture. */}
+                {resuming && (
+                  <div className="px-5 py-2.5 bg-brand-blue/5 border-b border-brand-blue/10 flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 text-brand-blue shrink-0" />
+                    <p className="text-xs text-slate-600">
+                      Resumed where you left off — you have answered{' '}
+                      <strong className="text-slate-700">{score.correct + score.wrong}</strong> of{' '}
+                      {questions.length}.
+                    </p>
+                  </div>
+                )}
+
                 {/* Progress + counter */}
                 <div className="px-5 pt-4 pb-3 border-b border-slate-100">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-2 gap-3">
                     <span className="text-xs font-medium text-slate-500">
                       Question <strong className="text-slate-700">{currentIdx + 1}</strong> of {questions.length}
                     </span>
+
+                    {/* Start over lives here rather than in FilterPanel: that
+                        panel and both of its call sites are commented out, so
+                        anything placed in it never reaches the screen. */}
+                    {(score.correct + score.wrong) > 0 && (
+                      confirmReset ? (
+                        <span className="flex items-center gap-2">
+                          <span className="text-[11px] text-slate-500">Clear your answers?</span>
+                          <button
+                            onClick={handleStartOver}
+                            disabled={resetting}
+                            className="px-2 py-1 text-[11px] font-medium rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            {resetting ? 'Clearing…' : 'Yes, start over'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmReset(false)}
+                            disabled={resetting}
+                            className="px-2 py-1 text-[11px] font-medium rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmReset(true)}
+                          className="flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+                          title="Clear your answers and start from question 1"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          Start over
+                        </button>
+                      )
+                    )}
                     {/* {q.subject && (
                       <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
                         {q.subject.name}{q.topic ? ` · ${q.topic.name}` : ''}

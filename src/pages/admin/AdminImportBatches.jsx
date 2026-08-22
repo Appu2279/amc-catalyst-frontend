@@ -11,9 +11,10 @@ import {
   updateQuestion,
   getSubjects,
   getSubjectTopics,
+  setBatchVisibility,
 } from '@/api/adminService';
 import {
-  Plus, Eye, Check, Trash2, X, CheckCircle2, AlertCircle, Copy, Pencil, Save,
+  Plus, Eye, EyeOff, Check, Trash2, X, CheckCircle2, AlertCircle, Copy, Pencil, Save,
 } from 'lucide-react';
 import { Lightbox } from '@/components/ui/Lightbox';
 
@@ -699,6 +700,8 @@ export const AdminImportBatches = () => {
   const [newBatchId,    setNewBatchId]    = useState(null);
   const [saving,        setSaving]        = useState(false);
   const [toast,         setToast]         = useState(null);
+  // Which batch's visibility toggle is mid-flight, so only that row disables.
+  const [visibilityBusy, setVisibilityBusy] = useState(null);
 
   const [form, setForm] = useState({ title: '', questions_pdf: '', answers_pdf: '' });
 
@@ -719,6 +722,24 @@ export const AdminImportBatches = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const toggleVisibility = async (batch) => {
+    const next = batch.is_visible === false;
+    setVisibilityBusy(batch.id);
+    try {
+      await setBatchVisibility(batch.id, next);
+      // Patched in place rather than refetching the list: the response confirms
+      // the new state, and a reload would scroll a long table back to the top.
+      setBatches(all => all.map(b => (b.id === batch.id ? { ...b, is_visible: next } : b)));
+      showToast('success', next
+        ? `"${batch.title}" is now visible to students`
+        : `"${batch.title}" is hidden from students`);
+    } catch (err) {
+      showToast('error', err?.response?.data?.message || 'Could not change visibility');
+    } finally {
+      setVisibilityBusy(null);
+    }
+  };
 
   const handleCreate = async () => {
     if (!form.title) { showToast('error', 'Title is required'); return; }
@@ -906,6 +927,7 @@ export const AdminImportBatches = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Workflow</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Total Q</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Imported</th>
+                <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Visible</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Created</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
@@ -913,13 +935,13 @@ export const AdminImportBatches = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-16">
+                  <td colSpan={8} className="text-center py-16">
                     <div className="w-6 h-6 border-4 border-brand-blue border-t-transparent rounded-full animate-spin mx-auto" />
                   </td>
                 </tr>
               ) : batches.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-16 text-slate-400 text-sm">No import batches yet.</td>
+                  <td colSpan={8} className="text-center py-16 text-slate-400 text-sm">No import batches yet.</td>
                 </tr>
               ) : (
                 batches.map((b) => (
@@ -932,6 +954,26 @@ export const AdminImportBatches = () => {
                     <td className="px-4 py-3 hidden md:table-cell"><StepIndicator status={b.status} /></td>
                     <td className="px-4 py-3 text-center text-slate-600 hidden sm:table-cell">{b.total_questions ?? '—'}</td>
                     <td className="px-4 py-3 text-center text-slate-600 hidden sm:table-cell">{b.imported_questions ?? '—'}</td>
+                    <td className="px-4 py-3 text-center">
+                      {/* Hides the whole batch from students without deleting
+                          anything — a demo month can be taken down and put back.
+                          Separate from Status, which is about whether the import
+                          itself succeeded. */}
+                      <button
+                        onClick={() => toggleVisibility(b)}
+                        disabled={visibilityBusy === b.id}
+                        title={b.is_visible === false ? 'Hidden from students — click to show' : 'Visible to students — click to hide'}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                          b.is_visible === false
+                            ? 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                            : 'border-green-200 text-green-700 bg-green-50 hover:bg-green-100'
+                        }`}
+                      >
+                        {b.is_visible === false
+                          ? <><EyeOff className="w-3.5 h-3.5" /> Hidden</>
+                          : <><Eye className="w-3.5 h-3.5" /> Visible</>}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-slate-500 hidden lg:table-cell text-xs">{fmt(b.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">

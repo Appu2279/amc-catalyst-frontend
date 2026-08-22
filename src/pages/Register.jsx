@@ -81,10 +81,16 @@ export const Register = () => {
         country,
         graduationYear: Number(graduationYear),
       });
-      // replace: the form is done, so back should not return to a filled-in copy of it.
-      navigate('/registration-success', {
+      // Straight to sign-in: the account exists, so the next thing to do is use
+      // it. replace, because the form is done and Back should not return to a
+      // filled-in copy of it.
+      //
+      // The email is carried over so Login can confirm the account was created
+      // and prefill the field — without that the student lands on a bare login
+      // form with no sign the registration worked.
+      navigate('/login', {
         replace: true,
-        state: { fullName: name.trim(), email: email.trim() },
+        state: { registered: true, email: email.trim() },
       });
     } catch (err) {
       const status  = err?.response?.status;
@@ -154,14 +160,10 @@ export const Register = () => {
         >
           <div className="mb-12">
             <h2 className="text-2xl font-black text-brand-dark tracking-tight">Create your account</h2>
-            {/* Pre-registration launch: sign-in is hidden until the dashboard opens.
-                Restore this line when accounts go live. */}
-            {/*
             <p className="text-slate-400 text-sm mt-2 font-medium">
               Already a member?{' '}
               <Link to="/login" className="text-brand-violet hover:underline font-bold">Sign in here</Link>
             </p>
-            */}
             <p className="text-slate-400 text-sm mt-2 font-medium">
               Reserve your place before launch — we will open your dashboard as soon as we go live.
             </p>
@@ -296,9 +298,25 @@ export const Register = () => {
               />
               <p className="text-xs text-slate-400 leading-relaxed font-medium">
                 I agree to the{' '}
-                <a href="#" className="text-brand-dark font-bold hover:text-brand-violet transition-colors">Terms of Service</a>
+                {/* Opened in a new tab so reading the terms does not discard a
+                    part-filled registration form. */}
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-dark font-bold hover:text-brand-violet transition-colors"
+                >
+                  Terms of Service
+                </Link>
                 {' '}and acknowledge the{' '}
-                <a href="#" className="text-brand-dark font-bold hover:text-brand-violet transition-colors">Privacy Policy</a>.
+                <Link
+                  to="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-dark font-bold hover:text-brand-violet transition-colors"
+                >
+                  Privacy Policy
+                </Link>.
               </p>
             </div>
 

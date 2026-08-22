@@ -1,13 +1,19 @@
 import { useAuth } from '@/context/AuthContext';
 import { Toast } from '@/components/ui/Toast';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Fingerprint, Lock, Mail, Stethoscope } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Fingerprint, Lock, Mail, Stethoscope } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/userService';
 
 export const Login = () => {
-  const [email, setEmail]       = useState('');
+  // Set when Register redirects here after creating the account. Read once into
+  // initial state rather than in an effect, so the field is filled on the first
+  // render instead of flashing empty.
+  const { state } = useLocation();
+  const justRegistered = Boolean(state?.registered);
+
+  const [email, setEmail]       = useState(state?.email ?? '');
   const [password, setPassword] = useState('');
   const [loading, setLoading]   = useState(false);
   const [toast, setToast]       = useState(null);
@@ -106,6 +112,18 @@ export const Login = () => {
             <h2 className="text-4xl font-black text-brand-dark tracking-tighter mb-2">Sign In</h2>
             <p className="text-slate-400 font-medium">Enter your credentials to access your dashboard.</p>
           </div>
+
+          {/* Confirms the account was created, since registration now lands here
+              rather than on a dedicated success page. */}
+          {justRegistered && (
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+              <div>
+                <p className="text-sm font-semibold text-green-800">Account created</p>
+                <p className="text-sm text-green-700">Sign in below to get started.</p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">

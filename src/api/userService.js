@@ -15,6 +15,21 @@ export const getQuestionById = (id)     => axiosInstance.get(`/questions/${id}`)
 // Called only after student picks an option — backend reveals is_correct + explanations
 export const checkAnswer     = (id, data) => axiosInstance.post(`/questions/${id}/check`, data);
 
+// Which practice questions this student has already answered, so Recall can
+// resume where they stopped — including after logging out or moving device.
+// Returns answered question ids rather than a position; see the note in
+// question.service.js for why.
+// The batches (recall months) a student can choose between. Hidden batches are
+// filtered out server-side, so what comes back is exactly what to offer.
+export const getQuestionBatches = (params) => axiosInstance.get('/questions/batches', { params });
+
+export const getPracticeProgress = (params) => axiosInstance.get('/questions/progress', { params });
+
+// "Start over" — clears this student's answers for one practice mode so the set
+// can be worked through again. source_type is required by the API on purpose.
+export const resetPracticeProgress = (params) =>
+  axiosInstance.delete('/questions/progress', { params });
+
 // Wraps a raw image URL in the authenticated proxy endpoint so the storage URL
 // is never directly exposed and Cache-Control: no-store is enforced server-side.
 export const proxyImageUrl = (url) =>

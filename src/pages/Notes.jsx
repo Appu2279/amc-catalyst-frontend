@@ -154,7 +154,11 @@ export const Notes = () => {
   }, []);
 
   return (
-    <DashboardLayout active="notes">
+    // Opening a note collapses the sidebar to an icon rail: while a student is
+    // reading, the nav is the thing most likely to pull their eye off the page,
+    // and the width it gives back goes straight into the page. Closing the note
+    // brings it back.
+    <DashboardLayout active="notes" collapseNav={!!active}>
       {active ? (
         <NoteViewer note={active} onBack={() => setActive(null)} />
       ) : (

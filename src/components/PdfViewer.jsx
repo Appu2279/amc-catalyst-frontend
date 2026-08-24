@@ -1,7 +1,7 @@
 /**
  * PdfViewer
  *
- * Renders a PDF to a <canvas> with PDF.js instead of handing it to the
+ * Renders a PDF to <canvas> elements with PDF.js instead of handing it to the
  * browser's built-in viewer.
  *
  * Why not an <iframe>: Chrome's PDF viewer ships its own toolbar with download
@@ -16,13 +16,23 @@
  * server-side per-account watermark is what makes a leaked copy traceable —
  * that is the actual control, and this viewer is the deterrent in front of it.
  *
- * One page is rendered at a time. A 32-page note held entirely in canvases
- * would cost well over 100MB of memory on a phone.
+ * Reading model: one continuous scroll, the way every PDF reader students
+ * already use behaves. Pages are stacked in a single scroller and the reader
+ * moves through the note with the wheel, a trackpad or a thumb — there are no
+ * previous/next buttons, and a page boundary is no longer something to click
+ * through.
+ *
+ * Only the pages near the viewport actually hold pixels. Every page's on-screen
+ * box is known up front from its unscaled size, so the scroller can be laid out
+ * at full height immediately while the canvases inside it are painted and then
+ * released as they come into and leave that window. A 32-page note held
+ * entirely in canvases would cost well over 100MB of memory on a phone; this
+ * keeps three or four alive regardless of how long the note is.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&inline';
-import { ChevronLeft, ChevronRight, Loader2, AlertCircle, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Loader2, AlertCircle, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 // The worker is inlined into the bundle rather than loaded as a separate file.
 // This project builds with vite-plugin-singlefile, which emits one HTML file —
@@ -38,34 +48,153 @@ import { ChevronLeft, ChevronRight, Loader2, AlertCircle, ZoomIn, ZoomOut, Maxim
 // task._worker in that case), so a worker passed in here is ours to destroy —
 // see the cleanup in the load effect.
 
-export const PdfViewer = ({ data, title }) => {
-  const canvasRef = useRef(null);
-  const containerRef = useRef(null);
-  const docRef = useRef(null);
-  const renderTaskRef = useRef(null);
-  // Read inside renderPage, which is memoised with an empty dependency list —
-  // a ref keeps it seeing the current zoom without rebuilding the callback (and
-  // re-triggering every effect that depends on it) on each zoom step.
-  const zoomRef = useRef(1);
-  // Monotonic token identifying the newest requested render. Anything older
-  // that wakes up from an await must bail out — see renderPage.
-  const renderSeq = useRef(0);
+const GUTTER = 12; // breathing room at the top, bottom and sides of the stack
+const PAGE_GAP = 16; // gap between consecutive pages
+// A page fits the width of the scroller, but only up to this. On a wide desktop
+// an unbounded fit-width turns an A4 page into a wall of oversized type that is
+// slower to read, not easier.
+const MAX_PAGE_WIDTH = 900;
+// Viewport-heights of pages kept painted above and below the visible window, so
+// a normal scroll lands on an already-drawn page rather than a placeholder.
+const OVERSCAN = 1;
+// A canvas has a hard pixel budget: iOS Safari refuses to allocate much past
+// ~16MP and hands back a blank bitmap rather than an error. A big page at 400%
+// on a retina screen asks for four times that, so the budget is enforced here.
+const MAX_CANVAS_PIXELS = 16 * 1024 * 1024;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 4;
 
-  const [pageCount, setPageCount] = useState(0);
-  const [page, setPage] = useState(1);
-  // 1 = the whole page fitted to the container. Above that the container
-  // scrolls, which is the point: notes with small print need magnifying.
+/**
+ * One page of the stack, mounted only while it is inside the painted window.
+ * Its box is reserved by the stack itself, so mounting and unmounting pages
+ * never moves the scroll position under the reader.
+ */
+const PageView = ({ doc, pageNumber, top, width, height, scale, title }) => {
+  const canvasRef = useRef(null);
+  // The page proxy, kept so its operator list can be released on the way out —
+  // PDF.js caches that per page and it dwarfs the canvas on a dense page.
+  const pageRef = useRef(null);
+  // The in-flight render, if any. A render must be cancelled AND awaited before
+  // anything else touches its canvas: cancelling alone still leaves the old
+  // task mid-write, which throws "Cannot use the same canvas during multiple
+  // render operations" and blanks the page.
+  const renderRef = useRef(null);
+  const [painted, setPainted] = useState(false);
+
+  useEffect(() => {
+    if (!doc) return;
+    let cancelled = false;
+
+    (async () => {
+      const previous = renderRef.current;
+      if (previous) {
+        previous.cancel();
+        await previous.promise.catch(() => {});
+        renderRef.current = null;
+      }
+      if (cancelled) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      let page;
+      try {
+        page = await doc.getPage(pageNumber);
+      } catch {
+        return;
+      }
+      if (cancelled) return;
+      pageRef.current = page;
+
+      // Render at the zoomed resolution rather than CSS-scaling a smaller
+      // bitmap up, so magnified text stays sharp instead of turning into
+      // enlarged pixels. Capped at 2x: beyond that the memory cost is real and
+      // the gain is not visible.
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let renderScale = scale * dpr;
+      // Past the pixel budget the extra sharpness is given back first — a
+      // slightly softer page at 400% beats a blank one on a phone.
+      const probe = page.getViewport({ scale: renderScale });
+      const pixels = probe.width * probe.height;
+      if (pixels > MAX_CANVAS_PIXELS) renderScale *= Math.sqrt(MAX_CANVAS_PIXELS / pixels);
+      const viewport = page.getViewport({ scale: renderScale });
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+
+      const task = page.render({ canvasContext: canvas.getContext('2d'), viewport });
+      renderRef.current = task;
+      try {
+        await task.promise;
+        if (!cancelled) setPainted(true);
+      } catch {
+        // A cancelled render is the expected outcome of scrolling or zooming
+        // past a page, and is nobody's concern.
+      } finally {
+        if (renderRef.current === task) renderRef.current = null;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      const task = renderRef.current;
+      const page = pageRef.current;
+      pageRef.current = null;
+      if (!task) {
+        page?.cleanup();
+        return;
+      }
+      // cleanup() on a page that is still rendering is refused with a warning,
+      // so it waits for the cancellation to settle. React cleanups cannot be
+      // async, hence the chain rather than an await.
+      task.cancel();
+      task.promise.catch(() => {}).finally(() => page?.cleanup());
+    };
+  }, [doc, pageNumber, scale]);
+
+  return (
+    <div
+      className="absolute left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-sm overflow-hidden"
+      style={{ top, width, height }}
+      data-page={pageNumber}
+    >
+      <canvas
+        ref={canvasRef}
+        aria-label={`${title} — page ${pageNumber}`}
+        className="block w-full h-full select-none"
+        draggable={false}
+      />
+      {!painted && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white">
+          <span className="text-[11px] text-slate-300 tabular-nums">{pageNumber}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const PdfViewer = ({ data, title }) => {
+  const containerRef = useRef(null);
+
+  const [doc, setDoc] = useState(null);
+  // Unscaled {w, h} per page, read once when the document opens. Pages in a
+  // single note are not guaranteed to share a size, so each is measured.
+  const [sizes, setSizes] = useState([]);
+  const [box, setBox] = useState({ w: 0, h: 0 });
   const [zoom, setZoom] = useState(1);
+  const [range, setRange] = useState({ start: 0, end: -1 });
+  const [current, setCurrent] = useState(1);
   const [errored, setErrored] = useState(false);
-  const [ready, setReady] = useState(false);
 
   // Load the document once per payload.
   useEffect(() => {
     if (!data) return;
     let cancelled = false;
-    setReady(false);
+    setDoc(null);
+    setSizes([]);
+    setZoom(1);
+    setCurrent(1);
+    setRange({ start: 0, end: -1 });
     setErrored(false);
-    setPage(1);
 
     // One worker per document — see the note above GlobalWorkerOptions.
     const worker = new pdfjsLib.PDFWorker({ port: new PdfWorker() });
@@ -76,17 +205,27 @@ export const PdfViewer = ({ data, title }) => {
     const task = pdfjsLib.getDocument({ data: data.slice(0), worker });
 
     task.promise
-      .then((doc) => {
+      .then(async (pdf) => {
         if (cancelled) return;
-        docRef.current = doc;
-        setPageCount(doc.numPages);
-        setReady(true);
+        // Page proxies are cheap; their viewports are what the stack needs to
+        // reserve the right height before a single pixel is drawn.
+        const pages = await Promise.all(
+          Array.from({ length: pdf.numPages }, (_, i) => pdf.getPage(i + 1))
+        );
+        if (cancelled) return;
+        setSizes(
+          pages.map((p) => {
+            const v = p.getViewport({ scale: 1 });
+            return { w: v.width, h: v.height };
+          })
+        );
+        setDoc(pdf);
       })
       .catch(() => !cancelled && setErrored(true));
 
     return () => {
       cancelled = true;
-      docRef.current = null;
+      setDoc(null);
 
       // destroy() is async: it flags the worker as pending-destroy, awaits the
       // transport teardown, and only then finishes. Firing it without awaiting
@@ -100,131 +239,178 @@ export const PdfViewer = ({ data, title }) => {
     };
   }, [data]);
 
-  const renderPage = useCallback(async (pageNumber) => {
-    const doc = docRef.current;
-    const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!doc || !canvas || !container) return;
-
-    // Holding arrow-down runs this faster than a page can render. Cancelling
-    // the previous task is not enough on its own: getPage() below is async, so
-    // two calls can both get past the cancel and then draw to the same canvas,
-    // which throws "Cannot use the same canvas during multiple render
-    // operations" and blanks the viewer. The sequence token makes every
-    // superseded call return instead.
-    const seq = ++renderSeq.current;
-
-    const previous = renderTaskRef.current;
-    if (previous) {
-      previous.cancel();
-      // Wait for the cancellation to actually settle before touching the
-      // canvas, or the old render can still be mid-write when the new one
-      // starts.
-      await previous.promise.catch(() => {});
-    }
-
-    const pdfPage = await doc.getPage(pageNumber);
-    if (seq !== renderSeq.current) return;
-
-    const unscaled = pdfPage.getViewport({ scale: 1 });
-
-    // Fit the WHOLE page into the container — width and height both — so a
-    // page is read by paging, not by scrolling within a page. Fitting width
-    // alone overflows a portrait page vertically and makes the pager useless.
-    // Then multiply by the device pixel ratio so text is sharp on retina
-    // screens rather than soft.
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const fitScale = Math.min(
-      (container.clientWidth - 24) / unscaled.width,
-      (container.clientHeight - 24) / unscaled.height
-    );
-    // Rendered at the zoomed resolution rather than CSS-scaled up, so magnified
-    // text stays sharp instead of turning into enlarged pixels.
-    const scale = Math.max(fitScale, 0.1) * zoomRef.current;
-    const viewport = pdfPage.getViewport({ scale: scale * dpr });
-
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    canvas.style.width = `${viewport.width / dpr}px`;
-    canvas.style.height = `${viewport.height / dpr}px`;
-
-    const task = pdfPage.render({
-      canvasContext: canvas.getContext('2d'),
-      viewport,
+  // Track the scroller's own size rather than the window's: the sidebar
+  // collapsing beside it changes the available width without a window resize.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setBox((b) => (b.w === width && b.h === height ? b : { w: width, h: height }));
     });
-    renderTaskRef.current = task;
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [doc]);
 
-    try {
-      await task.promise;
-      if (seq === renderSeq.current) setErrored(false);
-    } catch (err) {
-      // A cancelled render is the expected outcome of paging quickly, and a
-      // superseded one is no longer anyone's concern — neither is a failure to
-      // report.
-      if (err?.name !== 'RenderingCancelledException' && seq === renderSeq.current) {
-        setErrored(true);
-      }
-    }
+  // Where every page sits in the stack, at the current width and zoom.
+  const layout = useMemo(() => {
+    const available = Math.max(box.w - GUTTER * 2, 200);
+    const target = Math.min(available, MAX_PAGE_WIDTH) * zoom;
+    let top = GUTTER;
+    let widest = 0;
+    const items = sizes.map((size) => {
+      const scale = target / size.w;
+      const width = Math.round(size.w * scale);
+      const height = Math.round(size.h * scale);
+      const item = { top, width, height, scale };
+      top += height + PAGE_GAP;
+      widest = Math.max(widest, width);
+      return item;
+    });
+    return {
+      items,
+      height: items.length ? top - PAGE_GAP + GUTTER : 0,
+      // Zoomed past the viewport the stack has to be wider than the scroller,
+      // or there is nothing to scroll sideways into.
+      width: Math.max(box.w, widest + GUTTER * 2),
+    };
+  }, [sizes, box.w, zoom]);
+
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const currentRef = useRef(1);
+  currentRef.current = current;
+
+  // Which pages to paint, and which page the reader is on. Both fall out of the
+  // scroll offset and the layout, so no per-page observer is needed.
+  const measure = useCallback(() => {
+    const el = containerRef.current;
+    const { items } = layoutRef.current;
+    if (!el || !items.length) return;
+
+    const { scrollTop, clientHeight } = el;
+    const windowTop = scrollTop - clientHeight * OVERSCAN;
+    const windowBottom = scrollTop + clientHeight * (1 + OVERSCAN);
+
+    let start = 0;
+    while (start < items.length - 1 && items[start].top + items[start].height < windowTop) start += 1;
+    let end = start;
+    while (end < items.length - 1 && items[end + 1].top <= windowBottom) end += 1;
+    setRange((r) => (r.start === start && r.end === end ? r : { start, end }));
+
+    // The page under a line a third of the way down the viewport — the one
+    // being read, rather than whichever one happens to touch the top edge.
+    const marker = scrollTop + Math.min(clientHeight * 0.35, 220);
+    let index = items.findIndex((it) => it.top + it.height >= marker);
+    if (index < 0) index = items.length - 1;
+    setCurrent(index + 1);
   }, []);
 
-  useEffect(() => {
-    if (ready) renderPage(page);
-  }, [ready, page, renderPage]);
+  // Scroll fires far more often than the painted window can change; a frame is
+  // plenty, and coalescing keeps a fast flick off the render path.
+  const frameRef = useRef(0);
+  const onScroll = useCallback(() => {
+    if (frameRef.current) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = 0;
+      measure();
+    });
+  }, [measure]);
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
-  // Re-render at the new resolution when the zoom changes.
-  useEffect(() => {
-    zoomRef.current = zoom;
-    if (ready) renderPage(page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoom]);
+  // Keep the page the reader is looking at under the cursor across a zoom step,
+  // instead of jumping back to wherever the raw scroll offset now lands.
+  const anchorRef = useRef(null);
+  const zoomTo = useCallback((next) => {
+    const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(next * 20) / 20));
+    const el = containerRef.current;
+    const { items } = layoutRef.current;
+    if (el && items.length) {
+      const index = Math.min(Math.max(currentRef.current - 1, 0), items.length - 1);
+      const item = items[index];
+      anchorRef.current = { index, within: (el.scrollTop - item.top) / (item.height || 1) };
+    }
+    setZoom(clamped);
+  }, []);
+  const zoomBy = useCallback((factor) => zoomTo(zoom * factor), [zoom, zoomTo]);
 
-  // A new page should start at the top-left rather than wherever the previous
-  // page happened to be scrolled to.
-  useEffect(() => {
-    containerRef.current?.scrollTo({ top: 0, left: 0 });
-  }, [page]);
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    const anchor = anchorRef.current;
+    if (anchor) {
+      anchorRef.current = null;
+      const item = layout.items[anchor.index];
+      if (el && item) el.scrollTop = item.top + anchor.within * item.height;
+    }
+    measure();
+  }, [layout, measure]);
 
-  // Re-render on resize so the page keeps filling the width.
+  // Ctrl/⌘ + wheel is pinch-zoom on a trackpad and the zoom gesture every PDF
+  // reader answers to; without this it zooms the whole page instead.
   useEffect(() => {
-    if (!ready) return;
-    let timer;
-    const onResize = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => renderPage(page), 150);
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      zoomTo(zoom * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
     };
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('resize', onResize);
-      clearTimeout(timer);
-    };
-  }, [ready, page, renderPage]);
-
-  const go = useCallback(
-    (delta) => setPage((p) => Math.min(Math.max(p + delta, 1), pageCount || 1)),
-    [pageCount]
-  );
-
-  const ZOOM_MIN = 1;
-  const ZOOM_MAX = 4;
-  const zoomBy = useCallback(
-    (factor) =>
-      setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * factor * 20) / 20))),
-    []
-  );
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [zoom, zoomTo, doc]);
 
   useEffect(() => {
     const onKey = (e) => {
-      // Arrows scroll the magnified page instead of paging, or a zoomed-in
-      // reader could never reach the right-hand side of a page.
-      if (zoom === 1 && (e.key === 'ArrowRight' || e.key === 'PageDown')) go(1);
-      if (zoom === 1 && (e.key === 'ArrowLeft' || e.key === 'PageUp')) go(-1);
-      if (e.key === '+' || e.key === '=') zoomBy(1.25);
-      if (e.key === '-') zoomBy(0.8);
-      if (e.key === '0') setZoom(1);
+      const el = containerRef.current;
+      if (!el) return;
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target?.isContentEditable) return;
+
+      const step = 80;
+      switch (e.key) {
+        case 'ArrowDown':
+          el.scrollBy({ top: step });
+          break;
+        case 'ArrowUp':
+          el.scrollBy({ top: -step });
+          break;
+        case 'ArrowRight':
+          el.scrollBy({ left: step });
+          break;
+        case 'ArrowLeft':
+          el.scrollBy({ left: -step });
+          break;
+        case 'PageDown':
+        case ' ':
+          el.scrollBy({ top: el.clientHeight * 0.9, behavior: 'smooth' });
+          break;
+        case 'PageUp':
+          el.scrollBy({ top: -el.clientHeight * 0.9, behavior: 'smooth' });
+          break;
+        case 'Home':
+          el.scrollTo({ top: 0 });
+          break;
+        case 'End':
+          el.scrollTo({ top: el.scrollHeight });
+          break;
+        case '+':
+        case '=':
+          zoomBy(1.25);
+          break;
+        case '-':
+          zoomBy(0.8);
+          break;
+        case '0':
+          zoomTo(1);
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [go, zoom, zoomBy]);
+  }, [zoomBy, zoomTo]);
 
   if (errored) {
     return (
@@ -235,12 +421,16 @@ export const PdfViewer = ({ data, title }) => {
     );
   }
 
+  const ready = Boolean(doc) && sizes.length > 0;
+
   return (
     <div className="h-full flex flex-col">
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto p-3"
-        // Removes the "Save image as" entry on the rendered page. A deterrent,
+        onScroll={onScroll}
+        tabIndex={0}
+        className="flex-1 overflow-auto outline-none overscroll-contain"
+        // Removes the "Save image as" entry on the rendered pages. A deterrent,
         // not a control — see the note at the top of this file.
         onContextMenu={(e) => e.preventDefault()}
       >
@@ -250,39 +440,30 @@ export const PdfViewer = ({ data, title }) => {
             <p className="text-xs text-slate-400">Loading note…</p>
           </div>
         ) : (
-          // m-auto rather than a flex-centred parent: a flex child that
-          // overflows its container cannot be scrolled back to its left edge,
-          // so at high zoom the left of the page became unreachable.
-          <canvas
-            ref={canvasRef}
-            aria-label={`${title} — page ${page} of ${pageCount}`}
-            className="shadow-sm rounded-lg select-none m-auto"
-            draggable={false}
-          />
+          <div className="relative" style={{ height: layout.height, width: layout.width }}>
+            {layout.items.map((item, i) =>
+              i >= range.start && i <= range.end ? (
+                <PageView
+                  key={i}
+                  doc={doc}
+                  pageNumber={i + 1}
+                  top={item.top}
+                  width={item.width}
+                  height={item.height}
+                  scale={item.scale}
+                  title={title}
+                />
+              ) : null
+            )}
+          </div>
         )}
       </div>
 
       {ready && (
         <div className="shrink-0 flex items-center justify-center gap-2 py-2 border-t border-slate-100">
-          <button
-            onClick={() => go(-1)}
-            disabled={page <= 1}
-            className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent transition"
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
           <span className="text-xs text-slate-500 tabular-nums min-w-[92px] text-center">
-            Page {page} of {pageCount}
+            Page {current} of {sizes.length}
           </span>
-          <button
-            onClick={() => go(1)}
-            disabled={page >= pageCount}
-            className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent transition"
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
 
           <span className="w-px h-5 bg-slate-200 mx-1" />
 
@@ -294,15 +475,9 @@ export const PdfViewer = ({ data, title }) => {
           >
             <ZoomOut className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setZoom(1)}
-            disabled={zoom === 1}
-            className="text-xs text-slate-500 tabular-nums min-w-[46px] text-center hover:text-slate-700 disabled:hover:text-slate-500 transition"
-            aria-label="Reset zoom to fit page"
-            title="Fit page"
-          >
+          <span className="text-xs text-slate-500 tabular-nums min-w-[46px] text-center">
             {Math.round(zoom * 100)}%
-          </button>
+          </span>
           <button
             onClick={() => zoomBy(1.25)}
             disabled={zoom >= ZOOM_MAX}
@@ -311,18 +486,19 @@ export const PdfViewer = ({ data, title }) => {
           >
             <ZoomIn className="w-4 h-4" />
           </button>
-          {zoom !== 1 && (
-            <button
-              onClick={() => setZoom(1)}
-              className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition"
-              aria-label="Fit page"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-          )}
+          {/* Always mounted, disabled at 100%: appearing only above it moved
+              the zoom buttons out from under the cursor mid-click. */}
+          <button
+            onClick={() => zoomTo(1)}
+            disabled={zoom === 1}
+            className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent transition"
+            aria-label="Fit width"
+            title="Fit width"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
         </div>
       )}
-
     </div>
   );
 };

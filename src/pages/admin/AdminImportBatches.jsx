@@ -12,9 +12,13 @@ import {
   getSubjects,
   getSubjectTopics,
   setBatchVisibility,
+  getUnassignedQuestions,
+  addQuestionsToBatch,
+  removeQuestionFromBatch,
 } from '@/api/adminService';
 import {
   Plus, Eye, EyeOff, Check, Trash2, X, CheckCircle2, AlertCircle, Copy, Pencil, Save,
+  Unlink, ListPlus, Search, Loader2,
 } from 'lucide-react';
 import { Lightbox } from '@/components/ui/Lightbox';
 
@@ -105,7 +109,7 @@ const PreviewImage = ({ src, className, onClick }) => {
 };
 
 // ── Question view card ────────────────────────────────────────────────────────
-const QuestionView = ({ q, idx, onEdit, onExpand }) => (
+const QuestionView = ({ q, idx, onEdit, onExpand, onRemove }) => (
   <>
     <div className="flex items-start justify-between gap-3">
       <p className="text-sm text-slate-800 font-medium leading-relaxed flex-1">{q.question_text}</p>
@@ -113,6 +117,12 @@ const QuestionView = ({ q, idx, onEdit, onExpand }) => (
         <span className="text-xs text-slate-400 font-mono">#{q.question_number ?? idx + 1}</span>
         <button onClick={onEdit} className="p-1 text-slate-300 hover:text-brand-blue transition-colors" title="Edit question">
           <Pencil className="w-3.5 h-3.5" />
+        </button>
+        {/* Unlink, not a bin: this takes the question out of the batch and
+            leaves it in the question bank. Deleting it for good is the
+            questions page's job, and the icon says which one this is. */}
+        <button onClick={onRemove} className="p-1 text-slate-300 hover:text-amber-600 transition-colors" title="Remove from this batch">
+          <Unlink className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -439,8 +449,156 @@ const QuestionEditForm = ({ q, idx, subjects, topicsBySubject, onLoadTopics, onS
   );
 };
 
+// ── Add-questions picker ──────────────────────────────────────────────────────
+/**
+ * Offers the questions that belong to no batch.
+ *
+ * Questions already in another batch are deliberately absent: pulling one
+ * straight across would shrink the batch it came from without anyone seeing it
+ * happen. To move a question, remove it from its current batch first — it lands
+ * in this pool and can then be added here.
+ */
+const AddQuestionsModal = ({ batchId, batchTitle, onClose, onAdded, onError }) => {
+  const [search,   setSearch]   = useState('');
+  const [pool,     setPool]     = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState(() => new Set());
+  const [saving,   setSaving]   = useState(false);
+
+  // Debounced, so typing a search does not fire a request per keystroke.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const term = search.trim();
+    const timer = setTimeout(() => {
+      getUnassignedQuestions(term ? { search: term } : undefined)
+        .then((res) => !cancelled && setPool(res.data?.data ?? res.data ?? []))
+        .catch(() => !cancelled && setPool([]))
+        .finally(() => !cancelled && setLoading(false));
+    }, 250);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [search]);
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      const res = await addQuestionsToBatch(batchId, [...selected]);
+      onAdded(res.data ?? {});
+    } catch (err) {
+      onError(err?.response?.data?.message || 'Could not add questions');
+      setSaving(false);
+    }
+  };
+
+  const correctOf = (q) => (q.options ?? []).find((o) => o.is_correct);
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Add questions to "${batchTitle}"`}
+      size="lg"
+      footer={
+        <>
+          <button onClick={onClose} className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={saving || selected.size === 0}
+            className="px-4 py-2 text-sm bg-brand-blue text-white rounded-lg hover:bg-brand-blue-hover disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {saving
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <ListPlus className="w-3.5 h-3.5" />}
+            {saving
+              ? 'Adding…'
+              : selected.size
+                ? `Add ${selected.size} ${selected.size === 1 ? 'question' : 'questions'}`
+                : 'Add questions'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            autoFocus
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search unassigned questions…"
+            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue"
+          />
+        </div>
+
+        <p className="text-xs text-slate-500">
+          Only questions that belong to no batch are listed. To move one out of another batch,
+          remove it there first.
+        </p>
+
+        {loading ? (
+          <div className="py-12 flex justify-center">
+            <Loader2 className="w-6 h-6 text-brand-blue animate-spin" />
+          </div>
+        ) : pool.length === 0 ? (
+          <p className="py-12 text-center text-sm text-slate-400">
+            {search.trim() ? 'No unassigned questions match that search.' : 'Every question already belongs to a batch.'}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {pool.map((q) => {
+              const checked = selected.has(q.id);
+              const correct = correctOf(q);
+              return (
+                <label
+                  key={q.id}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    checked ? 'border-brand-blue bg-brand-blue/5' : 'border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(q.id)}
+                    className="mt-0.5 w-4 h-4 accent-brand-blue shrink-0"
+                  />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm text-slate-800 line-clamp-2">{q.question_text}</p>
+                    {correct && (
+                      <p className="text-xs text-green-700 truncate">
+                        <span className="font-semibold">{correct.option_key}.</span> {correct.option_text}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-mono">ID {q.id}</span>
+                      {q.subject?.name && (
+                        <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">{q.subject.name}</span>
+                      )}
+                      <DiffBadge d={q.difficulty} />
+                      {q.is_active === false && (
+                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">inactive</span>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+};
+
 // ── Preview slide-over ────────────────────────────────────────────────────────
-const PreviewPanel = ({ batchId, onClose, onApprove }) => {
+const PreviewPanel = ({ batchId, onClose, onApprove, onChange }) => {
   const [data,           setData]           = useState(null);
   const [loading,        setLoading]        = useState(true);
   const [approving,      setApproving]      = useState(false);
@@ -450,6 +608,9 @@ const PreviewPanel = ({ batchId, onClose, onApprove }) => {
   const [editingId,      setEditingId]      = useState(null);
   const [editSaving,     setEditSaving]     = useState(false);
   const [lightboxSrc,    setLightboxSrc]    = useState(null);
+  // The question queued for removal from the batch — not for deletion.
+  const [removeTarget,   setRemoveTarget]   = useState(null);
+  const [pickerOpen,     setPickerOpen]     = useState(false);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -532,6 +693,44 @@ const PreviewPanel = ({ batchId, onClose, onApprove }) => {
     }
   };
 
+  /**
+   * Takes the question out of the batch. The question itself is untouched — it
+   * moves to the unassigned pool, where another batch can pick it up.
+   */
+  const doRemove = async (q) => {
+    try {
+      const res = await removeQuestionFromBatch(batchId, q.id);
+      setData((prev) => ({
+        ...prev,
+        questions: prev.questions.filter((existing) => existing.id !== q.id),
+        imported_questions: res.data?.imported_questions ?? prev.imported_questions,
+      }));
+      showToast('success', 'Removed from batch — the question is still in the question bank');
+      onChange?.();
+    } catch (err) {
+      showToast('error', err?.response?.data?.message || 'Could not remove the question');
+    }
+  };
+
+  const handleAdded = async (result) => {
+    setPickerOpen(false);
+    // Refetched rather than patched in: the picker rows are trimmed for the
+    // list, and the panel needs the full questions with options and relations.
+    try {
+      const res = await getImportBatch(batchId);
+      setData(res.data?.data ?? res.data);
+    } catch {
+      // The add itself succeeded, so the outer table is still refreshed — only
+      // this panel is stale, and saying so beats a success toast over a list
+      // that has not moved.
+      showToast('error', 'Added, but this list could not be refreshed — reopen the batch');
+      onChange?.();
+      return;
+    }
+    showToast('success', result?.message || 'Questions added to batch');
+    onChange?.();
+  };
+
   const handleApprove = async () => {
     setApproving(true);
     try {
@@ -594,9 +793,15 @@ const PreviewPanel = ({ batchId, onClose, onApprove }) => {
                     <AlertCircle className="w-4 h-4" /> {failedCount} failed
                   </span>
                 )}
-                <span className="ml-auto text-[11px] text-slate-400 italic hidden sm:block">
-                  Click <Pencil className="inline w-3 h-3" /> to edit any question
+                <span className="ml-auto text-[11px] text-slate-400 italic hidden lg:block">
+                  <Pencil className="inline w-3 h-3" /> edit · <Unlink className="inline w-3 h-3" /> remove from batch
                 </span>
+                <button
+                  onClick={() => setPickerOpen(true)}
+                  className="ml-auto lg:ml-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand-blue text-white rounded-lg hover:bg-brand-blue-hover"
+                >
+                  <ListPlus className="w-3.5 h-3.5" /> Add questions
+                </button>
                 {failedDetails.length > 0 && (
                   <details className="w-full mt-1">
                     <summary className="text-xs text-red-500 cursor-pointer">Show failed details</summary>
@@ -652,6 +857,7 @@ const PreviewPanel = ({ batchId, onClose, onApprove }) => {
                           idx={i}
                           onEdit={() => startEdit(q)}
                           onExpand={setLightboxSrc}
+                          onRemove={() => setRemoveTarget(q)}
                         />
                       )}
                     </div>
@@ -685,6 +891,31 @@ const PreviewPanel = ({ batchId, onClose, onApprove }) => {
 
       {/* Lightbox — sits above the panel (z-[200]) */}
       <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+
+      {/* Modal and ConfirmDialog are both z-50, the same as this panel. The
+          wrapper gives them a stacking context above it so they are not painted
+          underneath. */}
+      <div className="relative z-[200]">
+        <ConfirmDialog
+          open={!!removeTarget}
+          onClose={() => setRemoveTarget(null)}
+          onConfirm={() => doRemove(removeTarget)}
+          title="Remove this question from the batch?"
+          message={`"${(removeTarget?.question_text ?? '').slice(0, 90)}${(removeTarget?.question_text ?? '').length > 90 ? '…' : ''}" stays in the question bank with its answers — it is only taken out of this batch, and can then be added to another one. To delete it for good, use the Questions page.`}
+          confirmLabel="Remove from batch"
+          confirmClass="bg-amber-600 hover:bg-amber-700 text-white"
+        />
+
+        {pickerOpen && (
+          <AddQuestionsModal
+            batchId={batchId}
+            batchTitle={data?.title ?? ''}
+            onClose={() => setPickerOpen(false)}
+            onAdded={handleAdded}
+            onError={(msg) => showToast('error', msg)}
+          />
+        )}
+      </div>
     </div>
   );
 };
@@ -817,6 +1048,7 @@ export const AdminImportBatches = () => {
           batchId={previewId}
           onClose={() => setPreviewId(null)}
           onApprove={load}
+          onChange={load}
         />
       )}
 

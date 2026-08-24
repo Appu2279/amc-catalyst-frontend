@@ -18,6 +18,17 @@ export const deleteImportBatch = (id) => axiosInstance.delete(`/admin/import-bat
 export const setBatchVisibility = (id, is_visible) =>
   axiosInstance.patch(`/admin/import-batches/${id}/visibility`, { is_visible });
 
+// Batch membership. A question's batch is one column on the question, so
+// removing it from a batch only unassigns it — the question, its options and
+// every student's progress on it survive, and it can then be added to another
+// batch. Deleting a question for good stays on the questions page.
+export const getUnassignedQuestions = (params) =>
+  axiosInstance.get('/admin/import-batches/unassigned-questions', { params });
+export const addQuestionsToBatch = (id, questionIds) =>
+  axiosInstance.post(`/admin/import-batches/${id}/questions`, { question_ids: questionIds });
+export const removeQuestionFromBatch = (id, questionId) =>
+  axiosInstance.delete(`/admin/import-batches/${id}/questions/${questionId}`);
+
 // Mock Tests
 export const getMockTests = () => axiosInstance.get('/admin/mock-tests');
 export const createMockTest = (data) => axiosInstance.post('/admin/mock-tests', data);

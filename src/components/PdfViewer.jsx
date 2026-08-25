@@ -30,8 +30,21 @@
  * keeps three or four alive regardless of how long the note is.
  */
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker&inline';
+// The *legacy* build, deliberately, not 'pdfjs-dist'.
+//
+// The default build targets browsers that have shipped everything PDF.js uses
+// natively, and reaches for Promise.withResolvers in ~40 places across the API
+// and the worker. Safari only gained that in 17.4, so on an iPad still on
+// iPadOS 16 or 17.0-17.3 — a large share of the ones students actually own —
+// getDocument() threw a TypeError before a single page was decoded and the
+// reader saw the "could not be displayed" state. Chrome and desktop Safari
+// were unaffected, which is why this looked like an iPad-only blank.
+//
+// The legacy build is the same library with core-js polyfills folded in. It
+// costs ~110KB across the two chunks; the alternative is that the notes
+// section does not work on an iPad at all.
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import PdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?worker&inline';
 import { Loader2, AlertCircle, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 // The worker is inlined into the bundle rather than loaded as a separate file.
@@ -183,7 +196,10 @@ export const PdfViewer = ({ data, title }) => {
   const [zoom, setZoom] = useState(1);
   const [range, setRange] = useState({ start: 0, end: -1 });
   const [current, setCurrent] = useState(1);
-  const [errored, setErrored] = useState(false);
+  // The message a failed open came back with, not just a flag: when a PDF only
+  // fails on one device the reason is the whole diagnosis, and a reader who can
+  // read it out loud saves a round of guessing.
+  const [errored, setErrored] = useState(null);
 
   // Load the document once per payload.
   useEffect(() => {
@@ -194,7 +210,7 @@ export const PdfViewer = ({ data, title }) => {
     setZoom(1);
     setCurrent(1);
     setRange({ start: 0, end: -1 });
-    setErrored(false);
+    setErrored(null);
 
     // One worker per document — see the note above GlobalWorkerOptions.
     const worker = new pdfjsLib.PDFWorker({ port: new PdfWorker() });
@@ -221,7 +237,7 @@ export const PdfViewer = ({ data, title }) => {
         );
         setDoc(pdf);
       })
-      .catch(() => !cancelled && setErrored(true));
+      .catch((err) => !cancelled && setErrored(err?.message || 'Unknown error'));
 
     return () => {
       cancelled = true;
@@ -417,6 +433,7 @@ export const PdfViewer = ({ data, title }) => {
       <div className="h-full flex flex-col items-center justify-center text-center px-6">
         <AlertCircle className="w-8 h-8 text-slate-300 mb-3" />
         <p className="text-sm text-slate-500">This note could not be displayed.</p>
+        <p className="text-[11px] text-slate-400 mt-2 max-w-xs break-words">{errored}</p>
       </div>
     );
   }
@@ -429,7 +446,12 @@ export const PdfViewer = ({ data, title }) => {
         ref={containerRef}
         onScroll={onScroll}
         tabIndex={0}
-        className="flex-1 overflow-auto outline-none overscroll-contain"
+        // min-h-0 is load-bearing: without it a flex item is floored at its
+        // content's height, and this one's content is the whole page stack —
+        // often 20,000px. Safari applies that floor more eagerly than Chrome,
+        // so the scroller grew instead of scrolling and pushed the control bar
+        // off the bottom of an iPad's screen.
+        className="flex-1 min-h-0 overflow-auto outline-none overscroll-contain"
         // Removes the "Save image as" entry on the rendered pages. A deterrent,
         // not a control — see the note at the top of this file.
         onContextMenu={(e) => e.preventDefault()}

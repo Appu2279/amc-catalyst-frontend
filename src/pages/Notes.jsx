@@ -101,7 +101,11 @@ const NoteViewer = ({ note, onBack }) => {
     // always, plus another 4rem for the mobile bottom nav — which md:pb-0
     // removes on desktop. Subtracting 8rem everywhere left a dead 4rem strip
     // below the controls on large screens.
-    <div className="flex flex-col h-[calc(100vh-8rem)] md:h-[calc(100vh-4rem)]">
+    //
+    // dvh rather than vh, to match the h-dvh shell: on an iPad 100vh overshoots
+    // the visible viewport by the height of Safari's toolbar, which put the zoom
+    // and page controls underneath it.
+    <div className="flex flex-col h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)]">
       <div className="flex items-center gap-3 mb-4 shrink-0">
         <button
           onClick={onBack}
@@ -116,7 +120,7 @@ const NoteViewer = ({ note, onBack }) => {
         </div>
       </div>
 
-      <div className="flex-1 rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden">
+      <div className="flex-1 min-h-0 rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden">
         {errored ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-6">
             <AlertCircle className="w-8 h-8 text-slate-300 mb-3" />

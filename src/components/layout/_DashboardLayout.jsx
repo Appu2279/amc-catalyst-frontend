@@ -45,7 +45,12 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
   const isActive = (item) => active === item.key || location.pathname === item.to;
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    // h-dvh, not h-screen. On iOS 100vh is the height the page *would* have with
+    // Safari's toolbars collapsed, so an h-screen shell on an iPad or iPhone
+    // hangs its last ~5rem behind the browser chrome — which is where the mobile
+    // nav and, in Notes, the PDF control bar live. 100dvh tracks the height that
+    // is actually on screen.
+    <div className="flex h-dvh bg-slate-50">
       {/* Sidebar */}
       <aside
         className={`hidden bg-white border-r border-slate-200 md:flex flex-col transition-[width] duration-200 ease-out ${

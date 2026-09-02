@@ -339,16 +339,6 @@ export const Recall = () => {
     );
   }
 
-  // Locked only when there is nothing to show. A section with samples opens
-  // instead, because a taste of the material sells it better than a wall does.
-  if (!sections.recall && !samples.recall) {
-    return (
-      <DashboardLayout active="recall">
-        <LockedSection {...LOCKED_COPY.recall} sampleCount={samples.recall} />
-      </DashboardLayout>
-    );
-  }
-
   const showingSamples = !sections.recall && samples.recall > 0;
 
   // ── Batch picker ────────────────────────────────────────────────────────────
@@ -360,12 +350,37 @@ export const Recall = () => {
         {showingSamples && <SampleBanner count={samples.recall} noun="questions" />}
         <div className="min-h-full bg-slate-50 py-6 px-4">
           <div className="max-w-5xl mx-auto">
-            <div className="mb-8">
+            <div className="mb-6">
               <h1 className="text-2xl font-bold text-slate-900">Recall Practice</h1>
               <p className="text-slate-500 text-sm mt-1">
                 Questions recalled by past candidates, grouped by exam sitting.
               </p>
             </div>
+
+            {!accessLoading && !sections.recall && batches.some((b) => !b.is_free) && (
+              <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-blue-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-violet text-white">
+                    <Sparkles className="h-3 w-3" />
+                  </span>
+                  <p className="text-sm text-slate-700">
+                    <span className="font-bold text-slate-900">
+                      Complete recall question sets for every sitting.
+                    </span>{' '}
+                    <span className="text-slate-500">
+                      Free samples below are open to everyone — full access comes with any plan.
+                    </span>
+                  </p>
+                </div>
+                <Link
+                  to="/pricing"
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-brand-violet px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-brand-violet-hover transition"
+                >
+                  Unlock all
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
 
             {batches.length === 0 ? (
               <div className="text-center py-24">
@@ -379,6 +394,7 @@ export const Recall = () => {
                   const done = b.answered_count ?? 0;
                   const pct = b.question_count ? Math.round((done / b.question_count) * 100) : 0;
                   const complete = done > 0 && done >= b.question_count;
+                  const hasAccess = sections.recall || b.is_free;
 
                   return (
                     <div
@@ -387,11 +403,19 @@ export const Recall = () => {
                     >
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <h2 className="text-base font-semibold text-slate-900 leading-snug">{b.title}</h2>
-                        {complete && (
+                        {complete ? (
                           <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
                             <CheckCircle2 className="w-3 h-3" /> Completed
                           </span>
-                        )}
+                        ) : !hasAccess ? (
+                          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <Lock className="w-3 h-3 text-slate-400" /> Unlock
+                          </span>
+                        ) : b.is_free ? (
+                          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                            <Sparkles className="w-3 h-3 text-amber-600" /> Free sample
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
@@ -414,13 +438,23 @@ export const Recall = () => {
                         </div>
                       )}
 
-                      <button
-                        onClick={() => setBatchId(b.id)}
-                        className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
-                      >
-                        {done > 0 && !complete ? 'Continue' : done > 0 ? 'Practise again' : 'Start practising'}
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
+                      {hasAccess ? (
+                        <button
+                          onClick={() => setBatchId(b.id)}
+                          className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
+                        >
+                          {done > 0 && !complete ? 'Continue' : done > 0 ? 'Practise again' : 'Start practising'}
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <Link
+                          to="/pricing"
+                          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-violet-50 py-2.5 text-sm font-bold text-violet-700 transition-colors hover:bg-violet-100"
+                        >
+                          <Lock className="h-4 w-4" />
+                          Unlock with a plan
+                        </Link>
+                      )}
                     </div>
                   );
                 })}

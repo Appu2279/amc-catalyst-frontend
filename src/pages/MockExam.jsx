@@ -53,23 +53,40 @@ export const MockExam = () => {
   // A free sample exam is worth more than any description of one: the student
   // sits it, sees a real score, and knows what they would be buying. So the
   // page only closes when there is not even one.
-  if (!sections.mocks && !samples.mocks) {
-    return (
-      <DashboardLayout active="mock-exam">
-        <LockedSection {...LOCKED_COPY.mocks} sampleCount={samples.mocks} />
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout active="mock-exam">
       <div className="min-h-screen bg-slate-50 py-6 px-4">
         <div className="max-w-5xl mx-auto">
 
-          <div className="mb-8">
+          <div className="mb-6">
             <h1 className="text-2xl font-bold text-slate-900">Mock Exams</h1>
             <p className="text-slate-500 text-sm mt-1">Full-length timed practice exams</p>
           </div>
+
+          {!accessLoading && !sections.mocks && tests.some((t) => !t.is_free) && (
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-blue-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-violet text-white">
+                  <Sparkles className="h-3 w-3" />
+                </span>
+                <p className="text-sm text-slate-700">
+                  <span className="font-bold text-slate-900">
+                    Full-length timed AMC mock exams.
+                  </span>{' '}
+                  <span className="text-slate-500">
+                    Free samples below are open to everyone — full access comes with any plan.
+                  </span>
+                </p>
+              </div>
+              <Link
+                to="/pricing"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-brand-violet px-4 py-1.5 text-sm font-bold text-white shadow-sm hover:bg-brand-violet-hover transition"
+              >
+                Unlock all
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
 
           {loading ? (
             <div className="flex justify-center py-24">

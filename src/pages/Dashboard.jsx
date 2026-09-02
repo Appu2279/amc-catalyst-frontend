@@ -403,12 +403,14 @@ export const Dashboard = () => {
                   {
                     to: '/qbank',
                     icon: BookOpen,
-                    iconColor: 'text-violet-600',
-                    iconBg: 'bg-violet-50',
-                    hoverBg: 'hover:bg-violet-50',
-                    arrowHover: 'group-hover:text-violet-400',
-                    label: 'QBank',
-                    sub: 'Practice by topic',
+                    iconColor: 'text-slate-400',
+                    iconBg: 'bg-slate-100',
+                    hoverBg: '',
+                    arrowHover: '',
+                    label: 'QBank (MCQs)',
+                    sub: 'Subject-wise practice questions',
+                    disabled: true,
+                    badge: 'Coming Soon',
                   },
                   {
                     to: '/recall',
@@ -432,22 +434,51 @@ export const Dashboard = () => {
                       ? `${tests.length} exam${tests.length !== 1 ? 's' : ''} available`
                       : 'Timed full-length exam',
                   },
-                ].map(item => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={`flex items-center gap-3 p-3 rounded-xl ${item.hoverBg} group transition-colors`}
-                  >
-                    <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
-                      <item.icon className={`w-4 h-4 ${item.iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-                      <p className="text-xs text-slate-400">{item.sub}</p>
-                    </div>
-                    <ChevronRight className={`w-4 h-4 text-slate-300 ${item.arrowHover} transition-colors shrink-0`} />
-                  </Link>
-                ))}
+                ].map(item => {
+                  if (item.disabled) {
+                    return (
+                      <div
+                        key={item.to}
+                        aria-disabled="true"
+                        title="MCQ QBank is coming soon"
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/60 border border-slate-100 opacity-75 cursor-not-allowed select-none"
+                      >
+                        <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
+                          <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-slate-700">{item.label}</p>
+                            <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                              {item.badge}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400">{item.sub}</p>
+                        </div>
+                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
+                          Disabled
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={`flex items-center gap-3 p-3 rounded-xl ${item.hoverBg} group transition-colors`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
+                        <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                        <p className="text-xs text-slate-400">{item.sub}</p>
+                      </div>
+                      <ChevronRight className={`w-4 h-4 text-slate-300 ${item.arrowHover} transition-colors shrink-0`} />
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 

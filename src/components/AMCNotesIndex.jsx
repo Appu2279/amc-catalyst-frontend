@@ -1,0 +1,504 @@
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  BookOpen,
+  Sparkles,
+  Search,
+  CheckCircle2,
+  FileText,
+  Heart,
+  Brain,
+  Activity,
+  Zap,
+  Eye,
+  Wind,
+  Baby,
+  Compass,
+  ShieldAlert,
+  BarChart3,
+  Droplet,
+  Scale,
+  Scissors,
+  Layers,
+  ShieldCheck,
+  Stethoscope,
+  ChevronRight,
+  BadgeCheck,
+  Star
+} from 'lucide-react';
+
+export const AMC_NOTES_DATA = {
+  title: "AMC CATALYST NOTES — COMPLETE INDEX",
+  author: "Dr. Solosailor’s AMC CATALYST",
+  subtitle: "Comprehensive 22 High-Yield Exam Notes & Resources tailored for AMC Part 1 success",
+  totalCount: 22,
+  parts: [
+    {
+      partNumber: 1,
+      partTitle: "PART 1 — 10 NOTES",
+      count: 10,
+      tagline: "Core Clinical Specialties & Essential AMC-1 Exam Tools",
+      gradient: "from-amber-500/10 via-orange-500/5 to-transparent",
+      badgeClass: "bg-amber-100 text-amber-800 border-amber-200",
+      accentColor: "#f59e0b",
+      notes: [
+        {
+          id: "cardiology",
+          title: "Cardiology Notes",
+          part: 1,
+          icon: Heart,
+          tag: "Core Clinical",
+          description: "High-yield ECGs, valvular diseases, heart failure, acute coronary syndromes & ETG guidelines."
+        },
+        {
+          id: "psychiatry",
+          title: "Psychiatry Notes",
+          part: 1,
+          icon: Brain,
+          tag: "Core Clinical",
+          description: "DSM-5 diagnostic criteria, psychopharmacology, MSE, risk assessment & Mental Health Act."
+        },
+        {
+          id: "git",
+          title: "GIT Notes",
+          part: 1,
+          icon: Activity,
+          tag: "Core Clinical",
+          description: "Gastroenterology, acute abdomen, liver diseases, inflammatory bowel disease & GI bleeding."
+        },
+        {
+          id: "neurology",
+          title: "Neurology Notes",
+          part: 1,
+          icon: Zap,
+          tag: "Core Clinical",
+          description: "Stroke pathways, cranial neuropathies, epilepsy, movement disorders & neuro-examination."
+        },
+        {
+          id: "ent",
+          title: "ENT Notes",
+          part: 1,
+          icon: Stethoscope,
+          tag: "Specialty",
+          description: "Otitis media, vertigo, hearing loss, epistaxis, head & neck red flags & airway emergencies."
+        },
+        {
+          id: "ophthalmology",
+          title: "Ophthalmology Notes",
+          part: 1,
+          icon: Eye,
+          tag: "Specialty",
+          description: "Red eye differential, acute vision loss, glaucoma, diabetic retinopathy & ocular trauma."
+        },
+        {
+          id: "respiratory",
+          title: "Respiratory Notes",
+          part: 1,
+          icon: Wind,
+          tag: "Core Clinical",
+          description: "Asthma/COPD management, pulmonary embolism, pneumonia algorithms & ABG analysis."
+        },
+        {
+          id: "obstetrics",
+          title: "Obstetrics Notes",
+          part: 1,
+          icon: Baby,
+          tag: "Obs & Gynae",
+          description: "Antenatal screening, preeclampsia, CTG interpretation, labor management & OB emergencies."
+        },
+        {
+          id: "amc-1-route-map",
+          title: "AMC-1 Route Map",
+          part: 1,
+          icon: Compass,
+          tag: "Exam Strategy",
+          isResource: true,
+          description: "Strategic high-yield blueprint roadmap, study schedules & AMC Part 1 preparation guide."
+        },
+        {
+          id: "amc-1-images-one-liners",
+          title: "AMC-1 Images & One-Liners",
+          part: 1,
+          icon: Sparkles,
+          tag: "Rapid Recall",
+          isResource: true,
+          description: "Essential clinical images, spotter diagnoses, high-yield buzzwords & rapid exam revision points."
+        }
+      ]
+    },
+    {
+      partNumber: 2,
+      partTitle: "PART 2 — 12 NOTES",
+      count: 12,
+      tagline: "Advanced Specialties, Ethics, Statistics & Preventive Medicine",
+      gradient: "from-brand-violet/10 via-indigo-500/5 to-transparent",
+      badgeClass: "bg-violet-100 text-violet-800 border-violet-200",
+      accentColor: "#7c3aed",
+      notes: [
+        {
+          id: "orthopaedic",
+          title: "Orthopaedic Notes",
+          part: 2,
+          icon: Activity,
+          tag: "Specialty",
+          description: "Fracture classifications, joint dislocations, pediatric orthopedics, compartment syndrome & trauma."
+        },
+        {
+          id: "dermatology",
+          title: "Dermatology Notes",
+          part: 2,
+          icon: Sparkles,
+          tag: "Specialty",
+          description: "Skin lesions, melanoma, eczema/psoriasis, severe cutaneous drug reactions & spot diagnoses."
+        },
+        {
+          id: "venom-bites",
+          title: "Venom & Bites Notes",
+          part: 2,
+          icon: ShieldAlert,
+          tag: "Australian Special",
+          description: "Australian snakebites, spider envenomation, marine stings & pressure immobilization protocols."
+        },
+        {
+          id: "statistics",
+          title: "Statistics Notes",
+          part: 2,
+          icon: BarChart3,
+          tag: "High-Yield",
+          description: "Biostatistics, study design, sensitivity/specificity, PPV/NPV, odds ratios & NNT calculations."
+        },
+        {
+          id: "haematology-rheumatology",
+          title: "Haematology & Rheumatology Notes",
+          part: 2,
+          icon: Droplet,
+          tag: "Core Clinical",
+          description: "Anemias, leukemias, coagulation cascades, RA, SLE, vasculitis & biological therapies."
+        },
+        {
+          id: "ethics",
+          title: "Ethics Notes",
+          part: 2,
+          icon: Scale,
+          tag: "High-Yield",
+          description: "Australian medico-legal ethics, informed consent, confidentiality, AHPRA & capacity assessment."
+        },
+        {
+          id: "surgery",
+          title: "Surgery Notes",
+          part: 2,
+          icon: Scissors,
+          tag: "Core Clinical",
+          description: "Perioperative management, post-op complications, surgical abdomen, trauma & fluid resuscitation."
+        },
+        {
+          id: "gynaecology",
+          title: "Gynaecology Notes",
+          part: 2,
+          icon: Heart,
+          tag: "Obs & Gynae",
+          description: "Abnormal uterine bleeding, contraception, cervical screening (CST), PCOS, menopause & pelvic pain."
+        },
+        {
+          id: "paediatrics",
+          title: "Paediatrics Notes",
+          part: 2,
+          icon: Baby,
+          tag: "Core Clinical",
+          description: "Developmental milestones, pediatric immunizations, neonatology, respiratory infections & rash differential."
+        },
+        {
+          id: "endocrinology",
+          title: "Endocrinology Notes",
+          part: 2,
+          icon: Activity,
+          tag: "Core Clinical",
+          description: "Diabetes management, thyroid storms, adrenal crisis, pituitary disorders & calcium homeostasis."
+        },
+        {
+          id: "miscellaneous",
+          title: "Miscellaneous Notes",
+          part: 2,
+          icon: Layers,
+          tag: "High-Yield",
+          description: "Pharmacology recall points, toxicology, geriatric syndromes & cross-specialty clinical pearls."
+        },
+        {
+          id: "preventative-medicine",
+          title: "Preventative Medicine Notes",
+          part: 2,
+          icon: ShieldCheck,
+          tag: "RACGP / Blueprint",
+          description: "RACGP Redbook screening guidelines, Australian immunizations, travel medicine & population health."
+        }
+      ]
+    }
+  ]
+};
+
+export const AMCNotesIndex = ({
+  variant = 'full', // 'full' | 'compact' | 'embed'
+  showSearch = true,
+  onSelectNote = null,
+  publishedNoteTitles = [] // Optional array of titles to show "Published / Available" status
+}) => {
+  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'part1' | 'part2'
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const allNotes = useMemo(() => {
+    return [
+      ...AMC_NOTES_DATA.parts[0].notes,
+      ...AMC_NOTES_DATA.parts[1].notes
+    ];
+  }, []);
+
+  const filteredNotes = useMemo(() => {
+    let list = allNotes;
+    if (activeTab === 'part1') {
+      list = AMC_NOTES_DATA.parts[0].notes;
+    } else if (activeTab === 'part2') {
+      list = AMC_NOTES_DATA.parts[1].notes;
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        n => n.title.toLowerCase().includes(q) ||
+             n.description.toLowerCase().includes(q) ||
+             n.tag.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [allNotes, activeTab, searchQuery]);
+
+  return (
+    <div className={`w-full ${variant === 'embed' ? '' : 'py-6'}`}>
+      {/* Header Container */}
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 mb-8 shadow-xl relative overflow-hidden border border-indigo-900/50">
+        {/* Background glow accents */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-violet/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-300">
+              <BadgeCheck className="w-4 h-4 text-amber-400" />
+              <span>{AMC_NOTES_DATA.author}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold">
+                PART 1 — 10
+              </span>
+              <span className="text-white/40 font-bold">•</span>
+              <span className="px-3 py-1 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 text-xs font-bold">
+                PART 2 — 12
+              </span>
+            </div>
+          </div>
+
+          <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white mb-2">
+            {AMC_NOTES_DATA.title}
+          </h2>
+          <p className="text-slate-300 text-sm sm:text-base font-medium max-w-2xl">
+            {AMC_NOTES_DATA.subtitle}
+          </p>
+
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-white/10">
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+              <p className="text-xs text-slate-400 font-medium">Total Resources</p>
+              <p className="text-xl sm:text-2xl font-black text-amber-400">{AMC_NOTES_DATA.totalCount} Notes</p>
+            </div>
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+              <p className="text-xs text-slate-400 font-medium">Part 1 Modules</p>
+              <p className="text-xl sm:text-2xl font-black text-amber-300">10 Core Subjects</p>
+            </div>
+            <div className="col-span-2 sm:col-span-1 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+              <p className="text-xs text-slate-400 font-medium">Part 2 Modules</p>
+              <p className="text-xl sm:text-2xl font-black text-violet-300">12 High-Yield Notes</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls & Navigation Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">
+        {/* Tab Filters */}
+        <div className="inline-flex p-1 rounded-2xl bg-slate-100 border border-slate-200/80 shadow-inner">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              activeTab === 'all'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            All Notes ({AMC_NOTES_DATA.totalCount})
+          </button>
+          <button
+            onClick={() => setActiveTab('part1')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'part1'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Part 1 (10)
+          </button>
+          <button
+            onClick={() => setActiveTab('part2')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'part2'
+                ? 'bg-violet-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Part 2 (12)
+          </button>
+        </div>
+
+        {/* Search Input */}
+        {showSearch && (
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search in 22 notes by topic, title..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Grid of Notes */}
+      {filteredNotes.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-2xl border border-slate-200">
+          <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-600 font-semibold">No notes match "{searchQuery}"</p>
+          <p className="text-xs text-slate-400 mt-1">Try clearing your search or switching tabs.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredNotes.map((note) => {
+            const Icon = note.icon || FileText;
+            const isPart1 = note.part === 1;
+            const isPublished = publishedNoteTitles.some(
+              t => t.toLowerCase().includes(note.title.toLowerCase()) || note.title.toLowerCase().includes(t.toLowerCase())
+            );
+
+            return (
+              <motion.div
+                key={note.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                whileHover={{ y: -3 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => onSelectNote && onSelectNote(note)}
+                className={`group relative bg-white rounded-2xl p-5 border-2 transition-all duration-200 flex flex-col justify-between ${
+                  onSelectNote ? 'cursor-pointer' : ''
+                } ${
+                  isPart1
+                    ? 'border-amber-200 hover:border-amber-400 hover:shadow-md hover:shadow-amber-500/10'
+                    : 'border-violet-200 hover:border-violet-400 hover:shadow-md hover:shadow-violet-500/10'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                        isPart1
+                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                          : 'bg-violet-50 text-violet-800 border-violet-200'
+                      }`}
+                    >
+                      Part {note.part}
+                    </span>
+
+                    <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                      {note.tag}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-3 mb-2">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                        isPart1
+                          ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
+                          : 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base leading-snug group-hover:text-violet-600 transition-colors">
+                        {note.title}
+                      </h3>
+                      {note.isResource && (
+                        <span className="inline-block mt-0.5 text-[10px] font-black uppercase tracking-widest text-amber-600">
+                          Special Resource
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-500 leading-relaxed font-medium mt-2">
+                    {note.description}
+                  </p>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Included in Catalyst
+                  </span>
+
+                  {publishedNoteTitles.length > 0 && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        isPublished
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {isPublished ? 'Available Now' : 'Indexed'}
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Author Footer Note */}
+      <div className="mt-8 bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="w-10 h-10 rounded-full bg-brand-violet/10 flex items-center justify-center text-brand-violet shrink-0">
+            <Star className="w-5 h-5 fill-brand-violet text-brand-violet" />
+          </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-slate-800">
+              Dr. Solosailor’s AMC CATALYST Notes Suite
+            </p>
+            <p className="text-xs text-slate-500 font-medium">
+              22 high-yield notes tailored specifically to AMC Part 1 exam questions & guidelines.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

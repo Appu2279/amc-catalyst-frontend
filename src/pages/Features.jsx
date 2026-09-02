@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, FileText, ClipboardCheck, Clock, Zap, Target, Sparkles } from 'lucide-react';
+import { AMCNotesIndex } from '@/components/AMCNotesIndex';
 
 export const Features = () => {
   const features = [
     {
       icon: <BookOpen className="w-5 h-5" />,
-      title: "Adaptive QBank",
+      title: "Adaptive QBank (MCQs)",
       description: "1 year of recall questions tailored to the latest AMC CAT blueprint with detailed Australian guideline references.",
-      color: "var(--color-brand-violet)"
+      color: "var(--color-brand-violet)",
+      comingSoon: true
     },
     {
       icon: <FileText className="w-5 h-5" />,
@@ -96,8 +98,13 @@ export const Features = () => {
 
               {/* Data Block */}
               <div className="pl-1">
-                <h3 className="text-xl font-black text-brand-dark tracking-tight mb-3">
-                  {feature.title}
+                <h3 className="text-xl font-black text-brand-dark tracking-tight mb-3 flex items-center justify-between gap-2">
+                  <span>{feature.title}</span>
+                  {feature.comingSoon && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                      Coming Soon ⏳
+                    </span>
+                  )}
                 </h3>
                 <p className="text-slate-500 text-[15px] leading-relaxed font-medium">
                   {feature.description}
@@ -113,8 +120,13 @@ export const Features = () => {
           ))}
         </div>
         
+        {/* Complete Notes Index Section */}
+        <div className="mt-24 pt-16 border-t border-slate-100">
+          <AMCNotesIndex variant="embed" />
+        </div>
+
         {/* Subtle Bottom Accent */}
-        <div className="mt-32 pt-8 border-t border-slate-50 flex justify-between items-center text-slate-300">
+        <div className="mt-24 pt-8 border-t border-slate-50 flex justify-between items-center text-slate-300">
             <span className="text-[10px] font-black uppercase tracking-[0.4em]">Integrated Suite</span>
             <div className="flex gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-brand-violet/20" />

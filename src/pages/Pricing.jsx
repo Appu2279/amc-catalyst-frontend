@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getCourses } from '../api/courseService';
 import { useAuth } from '@/context/AuthContext';
+import { AMCNotesIndex } from '@/components/AMCNotesIndex';
 
 // Static supporting copy from the client's sheet — presentation only, so it is
 // not stored against any plan.
 const HIGHLIGHTS = [
   { icon: ClipboardList,     title: '10 Months of Recalls', body: 'Extensive recall content with monthly additions.' },
   { icon: BookOpen,          title: '3–5 Mock Exams',       body: 'Exam pattern based full-length mocks.' },
-  { icon: HelpCircle,        title: 'Subject-wise MCQs',    body: 'High-yield MCQs from major question banks.' },
+  { icon: HelpCircle,        title: 'Subject-wise MCQs',    body: 'High-yield MCQs from major question banks (Coming Soon ⏳).' },
   { icon: Users,             title: 'Community & Support',  body: 'Telegram community, discussions & expert guidance.' },
 ];
 
@@ -34,7 +35,7 @@ const inr = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
 const ACCENTS = {
   'MOST POPULAR':    { ring: 'border-brand-violet', chip: 'bg-brand-violet text-white' },
   'BEST VALUE':      { ring: 'border-brand-gold',   chip: 'bg-brand-gold text-white' },
-  'STANDALONE PLAN': { ring: 'border-slate-100',    chip: 'bg-brand-violet/10 text-brand-violet' },
+  'STANDALONE PLAN': { ring: 'border-slate-200',    chip: 'bg-brand-violet/10 text-brand-violet' },
 };
 
 const PlanCard = ({ course, index }) => {
@@ -49,7 +50,7 @@ const PlanCard = ({ course, index }) => {
     : `/login?next=${encodeURIComponent(checkout)}`;
 
   const pricing = course.CoursePricings?.[0];
-  const accent = ACCENTS[course.badge] ?? { ring: 'border-slate-100', chip: '' };
+  const accent = ACCENTS[course.badge] ?? { ring: 'border-slate-200', chip: '' };
   const isFeatured = course.badge === 'MOST POPULAR' || course.badge === 'BEST VALUE';
 
   // Ordering lives on the join row so the same feature can sit in different
@@ -65,7 +66,7 @@ const PlanCard = ({ course, index }) => {
       viewport={{ once: true }}
       transition={{ delay: index * 0.08 }}
       className={`relative flex flex-col rounded-[1.75rem] border-2 bg-white p-6 pt-8 ${accent.ring} ${
-        isFeatured ? 'shadow-[0_24px_48px_rgba(124,58,237,0.10)]' : 'shadow-sm'
+        isFeatured ? 'shadow-[0_24px_48px_rgba(124,58,237,0.10)]' : 'shadow-md shadow-slate-200/50'
       }`}
     >
       {course.badge && (
@@ -95,7 +96,7 @@ const PlanCard = ({ course, index }) => {
         )}
       </div>
 
-      <div className="my-6 h-px bg-slate-100" />
+      <div className="my-6 h-px bg-slate-200" />
 
       {/* Tiered plans list only their additions on top of the plan below them. */}
       {course.inherits_from && (
@@ -108,30 +109,39 @@ const PlanCard = ({ course, index }) => {
       )}
 
       <ul className="flex-1 space-y-3">
-        {features.map((feature) =>
-          feature.CourseFeature?.highlight ? (
+        {features.map((feature) => {
+          const isMcq = feature.name?.toLowerCase().includes('mcq') || feature.name?.toLowerCase().includes('qbank');
+          return feature.CourseFeature?.highlight ? (
             <li
               key={feature.id}
-              className="rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-5 text-center"
+              className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-5 text-center shadow-xs"
             >
               <Sparkles className="mx-auto mb-2 h-5 w-5 text-brand-violet" />
-              <span className="text-sm font-bold text-brand-dark">{feature.name}</span>
+              <span className="text-sm font-bold text-brand-dark flex items-center justify-center gap-1.5 flex-wrap">
+                {feature.name}
+                {isMcq && (
+                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    Coming Soon ⏳
+                  </span>
+                )}
+              </span>
             </li>
           ) : (
             <li key={feature.id} className="flex items-start gap-2.5">
               <Check className="mt-0.5 h-4 w-4 shrink-0 stroke-[3] text-brand-violet" />
-              <span className="text-[13px] font-medium leading-snug text-slate-600">
+              <span className="text-[13px] font-medium leading-snug text-slate-600 flex items-center gap-1.5 flex-wrap">
                 {feature.name}
+                {isMcq && (
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                    Coming Soon ⏳
+                  </span>
+                )}
               </span>
             </li>
-          )
-        )}
+          );
+        })}
       </ul>
 
-      {/* Where "Enroll" goes depends on who is clicking. A signed-in buyer should
-          not be sent to register, and the plan they picked has to survive the
-          trip through login — otherwise they land back on pricing and pick
-          again, which is where checkout funnels lose people. */}
       <Link to={checkoutHref} className="mt-7">
         <button
           className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-black transition-all ${
@@ -153,7 +163,6 @@ export const Pricing = () => {
 
   useEffect(() => {
     getCourses()
-      // The API already returns plans in card order (sort_order).
       .then((response) => setPlans(response.data))
       .catch((err) => {
         console.error('Error fetching plans:', err);
@@ -196,10 +205,10 @@ export const Pricing = () => {
         )}
 
         {/* Highlights */}
-        <div className="mt-16 grid grid-cols-1 gap-6 rounded-[1.75rem] border border-slate-100 bg-slate-50/50 p-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid grid-cols-1 gap-6 rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-8 sm:grid-cols-2 lg:grid-cols-4 shadow-sm">
           {HIGHLIGHTS.map(({ icon: Icon, title, body }) => (
             <div key={title} className="flex gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-brand-violet shadow-sm">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-brand-violet border border-slate-100 shadow-sm">
                 <Icon className="h-5 w-5" />
               </div>
               <div>
@@ -212,14 +221,31 @@ export const Pricing = () => {
           ))}
         </div>
 
+        {/* Complete Notes Index Showcase */}
+        <div className="mt-16 pt-12 border-t border-slate-200">
+          <div className="text-center mb-8">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-xs font-black uppercase tracking-widest mb-3">
+              Included in Notes & Catalyst Plans
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-brand-dark">
+              Curriculum Breakdown: <span className="text-gradient-brand">22 High-Yield Notes</span>
+            </h2>
+            <p className="text-sm font-medium text-slate-500 mt-2 max-w-xl mx-auto">
+              Curated by Dr. Solosailor’s AMC CATALYST across 2 complete modules: Part 1 (10 Notes) & Part 2 (12 Notes).
+            </p>
+          </div>
+
+          <AMCNotesIndex variant="embed" />
+        </div>
+
         {/* Pricing notes */}
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {NOTES.map(({ icon: Icon, title, body }) => (
             <div
               key={title}
-              className="flex gap-4 rounded-[1.75rem] border border-slate-100 p-6"
+              className="flex gap-4 rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-violet/10 text-brand-violet">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-violet/10 text-brand-violet border border-brand-violet/20">
                 <Icon className="h-5 w-5" />
               </div>
               <div>

@@ -147,10 +147,10 @@ export const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[{
-              icon: <BookOpen />, title: "Adaptive QBank", desc: "1 year of recall questions that adapt to your performance.",
-              color: "brand-violet"
+              icon: <BookOpen />, title: "Adaptive QBank (MCQs)", desc: "1 year of recall questions that adapt to your performance.",
+              color: "brand-violet", comingSoon: true
             }, {
-              icon: <FileText />, title: "High-Yield Notes", desc: "Exam-ready notes across 15 core subjects.",
+              icon: <FileText />, title: "22 High-Yield Notes", desc: "Dr. Solosailor’s complete index: Part 1 (10) & Part 2 (12) notes & resources.",
               color: "brand-blue"
             }, {
               icon: <Target />, title: "Mock Exams", desc: "Full simulations replicating real exam pressure.",
@@ -159,15 +159,42 @@ export const Home = () => {
               <motion.div 
                 key={idx}
                 whileHover={{ y: -4 }}
-                className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
+                className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group relative overflow-hidden"
               >
-                <div className={`w-10 h-10 rounded-lg bg-${item.color}/10 text-${item.color} flex items-center justify-center mb-4 group-hover:bg-${item.color} group-hover:text-white transition-all`}>
-                   {React.cloneElement(item.icon, { className: "w-5 h-5" })}
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-10 h-10 rounded-lg bg-${item.color}/10 text-${item.color} flex items-center justify-center group-hover:bg-${item.color} group-hover:text-white transition-all`}>
+                    {React.cloneElement(item.icon, { className: "w-5 h-5" })}
+                  </div>
+                  {item.comingSoon && (
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                      Coming Soon ⏳
+                    </span>
+                  )}
                 </div>
-                <h4 className="text-lg font-black text-brand-dark mb-2">{item.title}</h4>
+                <h4 className="text-lg font-black text-brand-dark mb-2 flex items-center gap-2">
+                  {item.title}
+                </h4>
                 <p className="text-xs text-slate-500 font-medium">{item.desc}</p>
               </motion.div>
             ))}
+          </div>
+
+          {/* Notes Index Highlight Box */}
+          <div className="mt-12 p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl border border-indigo-900/50">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold mb-3 border border-amber-500/30">
+                <Sparkles className="w-3.5 h-3.5" /> Dr. Solosailor’s AMC CATALYST
+              </span>
+              <h3 className="text-2xl font-black tracking-tight text-white">AMC CATALYST NOTES — COMPLETE INDEX</h3>
+              <p className="text-sm text-slate-300 mt-2 max-w-xl">
+                Comprehensive 22 High-Yield Notes & Resources split into Part 1 (10 Notes) and Part 2 (12 Notes), covering Cardiology, Psychiatry, Ethics, Venom & Bites, Statistics & more.
+              </p>
+            </div>
+            <Link to="/features" className="shrink-0">
+              <Button size="lg" className="h-12 px-6 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg">
+                View 22 Notes Index →
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

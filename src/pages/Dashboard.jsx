@@ -485,7 +485,6 @@ export const Dashboard = () => {
                     label: 'QBank (MCQs)',
                     sub: 'Subject-wise practice',
                     disabled: true,
-                    badge: 'Coming Soon ⏳'
                   },
                 ].map(item => {
                   if (item.disabled) {
@@ -498,13 +497,8 @@ export const Dashboard = () => {
                           <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-bold text-slate-700">{item.label}</p>
-                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                              {item.badge}
-                            </span>
-                          </div>
-                          <p className="text-[11px] font-medium text-slate-400">{item.sub}</p>
+                          <p className="text-xs font-bold text-slate-700 truncate">{item.label}</p>
+                          <p className="text-[11px] font-medium text-slate-400 truncate mt-0.5">{item.sub}</p>
                         </div>
                       </div>
                     );

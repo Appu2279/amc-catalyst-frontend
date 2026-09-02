@@ -114,29 +114,31 @@ const PlanCard = ({ course, index }) => {
           return feature.CourseFeature?.highlight ? (
             <li
               key={feature.id}
-              className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-5 text-center shadow-xs"
+              className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center shadow-xs"
             >
-              <Sparkles className="mx-auto mb-2 h-5 w-5 text-brand-violet" />
-              <span className="text-sm font-bold text-brand-dark flex items-center justify-center gap-1.5 flex-wrap">
-                {feature.name}
+              <Sparkles className="mx-auto mb-1.5 h-5 w-5 text-brand-violet" />
+              <div className="text-sm font-bold text-brand-dark flex flex-col items-center justify-center gap-1.5">
+                <span>{feature.name}</span>
                 {isMcq && (
-                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  <span className="inline-block text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                     Coming Soon ⏳
                   </span>
                 )}
-              </span>
+              </div>
             </li>
           ) : (
-            <li key={feature.id} className="flex items-start gap-2.5">
-              <Check className="mt-0.5 h-4 w-4 shrink-0 stroke-[3] text-brand-violet" />
-              <span className="text-[13px] font-medium leading-snug text-slate-600 flex items-center gap-1.5 flex-wrap">
-                {feature.name}
-                {isMcq && (
-                  <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
-                    Coming Soon ⏳
-                  </span>
-                )}
-              </span>
+            <li key={feature.id} className="flex items-center justify-between gap-2 py-1">
+              <div className="flex items-start gap-2 min-w-0">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 stroke-[3] text-brand-violet" />
+                <span className="text-[13px] font-medium leading-snug text-slate-600">
+                  {feature.name}
+                </span>
+              </div>
+              {isMcq && (
+                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                  Coming Soon ⏳
+                </span>
+              )}
             </li>
           );
         })}

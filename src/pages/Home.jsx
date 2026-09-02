@@ -166,7 +166,7 @@ export const Home = () => {
                     {React.cloneElement(item.icon, { className: "w-5 h-5" })}
                   </div>
                   {item.comingSoon && (
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                       Coming Soon ⏳
                     </span>
                   )}

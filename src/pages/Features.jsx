@@ -101,7 +101,7 @@ export const Features = () => {
                 <h3 className="text-xl font-black text-brand-dark tracking-tight mb-3 flex items-center justify-between gap-2">
                   <span>{feature.title}</span>
                   {feature.comingSoon && (
-                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
                       Coming Soon ⏳
                     </span>
                   )}

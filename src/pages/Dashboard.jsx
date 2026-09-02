@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -20,6 +21,10 @@ import {
   AlertCircle,
   Clock,
   UndoDot,
+  Sparkles,
+  ArrowRight,
+  Flame,
+  Award
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { PlanStatus } from '@/components/PlanStatus';
@@ -27,25 +32,32 @@ import { PlanStatus } from '@/components/PlanStatus';
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 const Skeleton = ({ className = '' }) => (
-  <div className={`animate-pulse bg-slate-100 rounded-lg ${className}`} />
+  <div className={`animate-pulse bg-slate-100 rounded-xl ${className}`} />
 );
 
 const EmptyState = ({ icon: Icon, text, action }) => (
-  <div className="flex flex-col items-center justify-center py-8 text-center">
-    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mb-3">
-      <Icon className="w-6 h-6 text-slate-300" />
+  <div className="flex flex-col items-center justify-center py-10 text-center">
+    <div className="w-12 h-12 rounded-2xl bg-slate-100/80 flex items-center justify-center mb-3 text-slate-400">
+      <Icon className="w-6 h-6" />
     </div>
-    <p className="text-xs text-slate-400 leading-relaxed max-w-[180px]">{text}</p>
+    <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-[200px]">{text}</p>
     {action && (
-      <Link to={action.to} className="mt-3 text-xs font-medium text-violet-600 hover:underline">
-        {action.label}
+      <Link
+        to={action.to}
+        className="mt-3.5 inline-flex items-center gap-1 text-xs font-bold text-violet-600 hover:text-violet-700 transition"
+      >
+        {action.label} <ArrowRight className="w-3 h-3" />
       </Link>
     )}
   </div>
 );
 
-const StatCard = ({ icon: Icon, iconColor, iconBg, label, value, sub, loading }) => (
-  <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+const StatCard = ({ icon: Icon, iconColor, iconBg, label, value, sub, loading, trend }) => (
+  <motion.div
+    whileHover={{ y: -3 }}
+    transition={{ duration: 0.2 }}
+    className="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm flex flex-col justify-between"
+  >
     {loading ? (
       <div className="space-y-3 animate-pulse">
         <Skeleton className="w-10 h-10 rounded-xl" />
@@ -54,41 +66,52 @@ const StatCard = ({ icon: Icon, iconColor, iconBg, label, value, sub, loading })
       </div>
     ) : (
       <>
-        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center mb-4`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className={`w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center shadow-xs`}>
+            <Icon className={`w-5.5 h-5.5 ${iconColor}`} />
+          </div>
+          {trend && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <TrendingUp className="w-3 h-3" /> {trend}
+            </span>
+          )}
         </div>
-        <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{value}</p>
-        <p className="text-sm text-slate-500 mt-1.5">{label}</p>
-        {sub && <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>}
+        <div>
+          <p className="text-2xl sm:text-3xl font-black text-slate-900 tabular-nums leading-none tracking-tight">
+            {value}
+          </p>
+          <p className="text-xs font-bold text-slate-700 mt-2">{label}</p>
+          {sub && <p className="text-[11px] text-slate-400 font-medium mt-0.5">{sub}</p>}
+        </div>
       </>
     )}
-  </div>
+  </motion.div>
 );
 
 const SubjectBar = ({ name, accuracy, total, correct }) => {
   const pct = Math.min(100, parseFloat(accuracy) || 0);
-  const [color, textColor, trackColor] =
+  const [color, textColor, trackColor, badgeBorder] =
     pct >= 70
-      ? ['bg-emerald-500', 'text-emerald-600', 'bg-emerald-50']
+      ? ['bg-emerald-500', 'text-emerald-700', 'bg-emerald-50', 'border-emerald-200']
       : pct >= 50
-      ? ['bg-amber-400',   'text-amber-600',   'bg-amber-50']
-      : ['bg-red-400',     'text-red-500',     'bg-red-50'];
+      ? ['bg-amber-400',   'text-amber-700',   'bg-amber-50',   'border-amber-200']
+      : ['bg-red-400',     'text-red-600',     'bg-red-50',     'border-red-200'];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1.5 gap-2">
-        <span className="text-sm font-medium text-slate-700 truncate flex-1">{name}</span>
-        <span className={`text-xs font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full ${textColor} ${trackColor}`}>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs sm:text-sm font-bold text-slate-800 truncate">{name}</span>
+        <span className={`text-xs font-black tabular-nums shrink-0 px-2.5 py-0.5 rounded-full border ${textColor} ${trackColor} ${badgeBorder}`}>
           {pct.toFixed(0)}%
         </span>
       </div>
-      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
         <div
-          className={`h-full ${color} rounded-full transition-all duration-700`}
+          className={`h-full ${color} rounded-full transition-all duration-700 shadow-xs`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] text-slate-400 mt-1">
+      <p className="text-[10px] font-medium text-slate-400">
         {correct} correct of {total} answered
       </p>
     </div>
@@ -137,103 +160,126 @@ export const Dashboard = () => {
   const hour      = new Date().getHours();
   const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  // Sort subjects best → worst for display
   const sortedSubjects = [...subjects].sort(
     (a, b) => parseFloat(b.accuracy_percent) - parseFloat(a.accuracy_percent)
   );
 
   return (
     <DashboardLayout active="dashboard">
-      <div className="p-5 sm:p-8 space-y-7 pb-20 md:pb-8">
+      <div className="p-4 sm:p-8 space-y-7 pb-20 md:pb-8">
 
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <div className="flex items-start sm:items-center justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              {greeting}, Dr. {firstName} 👋
-            </h1>
-            <p className="text-slate-500 text-sm mt-0.5">
-              {new Date().toLocaleDateString('en-AU', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-              })}
-            </p>
+        {/* ── Modern Hero Header ────────────────────────────────────────────── */}
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-indigo-900/50 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-violet/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-60 h-60 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-300">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Dr. {firstName} • AMC Candidate
+                </span>
+                <span className="text-slate-400 text-xs font-semibold hidden sm:inline">•</span>
+                <span className="text-xs font-medium text-slate-300 hidden sm:inline">
+                  {new Date().toLocaleDateString('en-AU', {
+                    weekday: 'short', month: 'short', day: 'numeric',
+                  })}
+                </span>
+              </div>
+
+              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+                {greeting}, Dr. {firstName} 👋
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm font-medium mt-1 max-w-xl">
+                Welcome to your AMC CATALYST dashboard. Track your subject performance, review mock exams, and master high-yield topics.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <Link
+                to="/mock-exam"
+                className="flex items-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl transition shadow-lg shadow-amber-500/20"
+              >
+                <Trophy className="w-4 h-4" />
+                <span>Start Mock Exam</span>
+              </Link>
+              <Link
+                to="/notes"
+                className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white border border-white/15 text-xs font-bold rounded-xl transition"
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Study Notes</span>
+              </Link>
+            </div>
           </div>
-          <Link
-            to="/mock-exam"
-            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition-colors shrink-0"
-          >
-            <Trophy className="w-4 h-4" />
-            Start Mock Exam
-          </Link>
         </div>
 
-        {/* Where the student stands: what they hold, when it lapses, or that a
-            payment is still being checked by hand. Sits directly under the
-            greeting because it explains everything below it. */}
+        {/* Plan Access Status */}
         <PlanStatus subscriptions={subscriptions} loading={accessLoading} />
 
-        {/* ── Stat cards ─────────────────────────────────────────────────────── */}
+        {/* ── Stat cards grid ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             loading={loading}
             icon={BookOpen}
             iconColor="text-violet-600"
-            iconBg="bg-violet-50"
+            iconBg="bg-violet-50 border border-violet-100"
             label="Questions Answered"
             value={totalAnswered.toLocaleString()}
-            sub="across all exams"
+            sub="across all attempts"
           />
           <StatCard
             loading={loading}
             icon={Target}
             iconColor="text-emerald-600"
-            iconBg="bg-emerald-50"
+            iconBg="bg-emerald-50 border border-emerald-100"
             label="Average Accuracy"
             value={`${avgAccuracy.toFixed(1)}%`}
             sub="correct vs attempted"
+            trend={avgAccuracy > 0 ? `${avgAccuracy.toFixed(0)}%` : null}
           />
           <StatCard
             loading={loading}
             icon={Trophy}
             iconColor="text-amber-600"
-            iconBg="bg-amber-50"
+            iconBg="bg-amber-50 border border-amber-100"
             label="Mock Exams Taken"
             value={totalAttempts.toString()}
-            sub="completed attempts"
+            sub="completed sessions"
           />
           <StatCard
             loading={loading}
             icon={TrendingUp}
             iconColor="text-blue-600"
-            iconBg="bg-blue-50"
+            iconBg="bg-blue-50 border border-blue-100"
             label="Average Score"
             value={avgScore.toFixed(1)}
             sub="marks per exam"
           />
         </div>
 
-        {/* ── Main grid ──────────────────────────────────────────────────────── */}
+        {/* ── Main content grid ──────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Left column (2/3) */}
+          {/* Left column (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Subject Performance */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
                 <div>
-                  <h2 className="font-bold text-slate-900">Subject Performance</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Mock exam results by subject</p>
+                  <h2 className="text-lg font-black text-slate-900">Subject Performance</h2>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">Mock exam accuracy broken down by clinical specialty</p>
                 </div>
-                <div className="flex items-center gap-3 text-[10px] font-medium text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />≥70%
+                <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500">
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />≥70% High
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />50–69%
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />50–69% Mid
                   </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />&lt;50%
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />&lt;50% Low
                   </span>
                 </div>
               </div>
@@ -246,15 +292,15 @@ export const Dashboard = () => {
                         <Skeleton className="h-3 w-36" />
                         <Skeleton className="h-3 w-10" />
                       </div>
-                      <Skeleton className="h-2 w-full" />
+                      <Skeleton className="h-2.5 w-full" />
                     </div>
                   ))}
                 </div>
               ) : sortedSubjects.length === 0 ? (
                 <EmptyState
                   icon={BookOpen}
-                  text="No subject data yet. Complete a mock exam to see your performance breakdown."
-                  action={{ label: 'Take a mock exam', to: '/mock-exam' }}
+                  text="No subject data collected yet. Complete a mock exam to generate your accuracy breakdown."
+                  action={{ label: 'Take a Mock Exam', to: '/mock-exam' }}
                 />
               ) : (
                 <div className="space-y-5">
@@ -272,32 +318,32 @@ export const Dashboard = () => {
             </div>
 
             {/* Recent Mock Exam History */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h2 className="font-bold text-slate-900">Recent Mock Exams</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Your last 5 completed attempts</p>
+                  <h2 className="text-lg font-black text-slate-900">Recent Mock Exams</h2>
+                  <p className="text-xs text-slate-400 font-medium mt-0.5">Your last 5 completed exam attempts</p>
                 </div>
                 <Link
                   to="/mock-exam"
-                  className="text-xs text-violet-600 font-medium hover:underline flex items-center gap-0.5"
+                  className="text-xs text-violet-600 font-bold hover:underline flex items-center gap-1"
                 >
-                  All exams <ChevronRight className="w-3 h-3" />
+                  All Exams <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
               {loading ? (
                 <div className="space-y-3 animate-pulse">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full rounded-2xl" />)}
                 </div>
               ) : history.length === 0 ? (
                 <EmptyState
                   icon={Trophy}
-                  text="No completed exams yet. Take your first mock exam to track your progress."
-                  action={{ label: 'Browse exams', to: '/mock-exam' }}
+                  text="No completed exam attempts recorded yet."
+                  action={{ label: 'Browse Mock Exams', to: '/mock-exam' }}
                 />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {history.map(a => {
                     const total   = a.mock_test?.total_questions ?? (Number(a.total_correct || 0) + Number(a.total_wrong || 0) + Number(a.total_unanswered || 0));
                     const correct = Number(a.total_correct ?? 0);
@@ -308,34 +354,34 @@ export const Dashboard = () => {
                     return (
                       <div
                         key={a.id}
-                        className="flex items-center gap-4 p-3.5 rounded-xl bg-slate-50 hover:bg-violet-50/50 transition-colors"
+                        className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/80 border border-slate-100 hover:border-violet-200 hover:bg-violet-50/40 transition-all"
                       >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${passed ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${passed ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-500'}`}>
                           {passed
-                            ? <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                            : <XCircle      className="w-5 h-5 text-red-500" />}
+                            ? <CheckCircle2 className="w-5.5 h-5.5" />
+                            : <XCircle      className="w-5.5 h-5.5" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
+                          <p className="text-sm font-bold text-slate-900 truncate">
                             {a.mock_test?.title ?? `Exam Attempt #${a.id}`}
                           </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
+                          <p className="text-[11px] font-medium text-slate-400 mt-0.5 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-slate-400" />
                             {new Date(a.created_at).toLocaleDateString('en-AU', {
                               day: 'numeric', month: 'short', year: 'numeric',
                             })}
                             {a.mock_test?.duration_minutes && (
-                              <span className="ml-1">· {a.mock_test.duration_minutes} min</span>
+                              <span className="text-slate-400">· {a.mock_test.duration_minutes} min</span>
                             )}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-sm font-bold tabular-nums text-slate-900">
+                          <p className="text-sm font-black tabular-nums text-slate-900">
                             {correct}/{total}
                           </p>
-                          <p className={`text-xs font-semibold ${passed ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {pctStr}
-                          </p>
+                          <span className={`inline-block text-[10px] font-black px-2 py-0.5 rounded-full border ${passed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                            {pctStr} {passed ? 'Passed' : 'Review'}
+                          </span>
                         </div>
                       </div>
                     );
@@ -345,47 +391,47 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Right column (1/3) */}
+          {/* Right column (1/3 width) */}
           <div className="space-y-6">
 
-            {/* Focus Areas (weak topics) */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            {/* Focus Areas (Weak topics) */}
+            <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6">
               <div className="flex items-center gap-2 mb-1">
-                <AlertCircle className="w-4 h-4 text-amber-500" />
-                <h2 className="font-bold text-slate-900">Focus Areas</h2>
+                <AlertCircle className="w-4.5 h-4.5 text-amber-500" />
+                <h2 className="text-lg font-black text-slate-900">Focus Areas</h2>
               </div>
-              <p className="text-xs text-slate-400 mb-4">
-                Topics with lowest accuracy (≥5 attempts)
+              <p className="text-xs text-slate-400 font-medium mb-4">
+                Topics requiring review (&lt;50% accuracy)
               </p>
 
               {loading ? (
                 <div className="space-y-2.5 animate-pulse">
-                  {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
+                  {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full rounded-2xl" />)}
                 </div>
               ) : weakTopics.length === 0 ? (
                 <EmptyState
                   icon={Target}
-                  text="No focus areas found yet. Needs at least 5 answers per topic."
+                  text="No focus areas identified yet. Needs at least 5 answers per topic."
                 />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {weakTopics.slice(0, 6).map(t => {
                     const pct = parseFloat(t.accuracy_percent) || 0;
-                    const [bg, text] = pct < 40
-                      ? ['bg-red-50',  'text-red-600']
-                      : ['bg-amber-50', 'text-amber-600'];
+                    const [bg, text, border] = pct < 40
+                      ? ['bg-red-50',  'text-red-600', 'border-red-200']
+                      : ['bg-amber-50', 'text-amber-700', 'border-amber-200'];
                     return (
                       <div
                         key={t.topic_id}
-                        className="flex items-center justify-between p-3 rounded-xl bg-slate-50 gap-3"
+                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 gap-3"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-slate-700 truncate leading-snug">
+                          <p className="text-xs font-bold text-slate-800 truncate leading-snug">
                             {t.topic_name}
                           </p>
-                          <p className="text-[10px] text-slate-400 mt-0.5 truncate">{t.subject_name}</p>
+                          <p className="text-[10px] font-medium text-slate-400 mt-0.5 truncate">{t.subject_name}</p>
                         </div>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${bg} ${text}`}>
+                        <span className={`text-xs font-black px-2.5 py-0.5 rounded-full shrink-0 border ${bg} ${text} ${border}`}>
                           {pct.toFixed(0)}%
                         </span>
                       </div>
@@ -395,69 +441,71 @@ export const Dashboard = () => {
               )}
             </div>
 
-            {/* Quick Practice */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-              <h2 className="font-bold text-slate-900 mb-4">Quick Practice</h2>
-              <div className="space-y-1.5">
+            {/* Quick Practice Suite */}
+            <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-sm p-6">
+              <h2 className="text-lg font-black text-slate-900 mb-4">Quick Practice Suite</h2>
+              <div className="space-y-2">
                 {[
                   {
-                    to: '/qbank',
+                    to: '/notes',
                     icon: BookOpen,
-                    iconColor: 'text-slate-400',
-                    iconBg: 'bg-slate-100',
-                    hoverBg: '',
-                    arrowHover: '',
-                    label: 'QBank (MCQs)',
-                    sub: 'Subject-wise practice questions',
-                    disabled: true,
-                    badge: 'Coming Soon',
+                    iconColor: 'text-amber-600',
+                    iconBg: 'bg-amber-50 border border-amber-200',
+                    hoverBg: 'hover:bg-amber-50/50 hover:border-amber-200',
+                    label: 'Study Notes',
+                    sub: '22 High-Yield Notes Index',
+                    badge: '22 Notes'
                   },
                   {
                     to: '/recall',
                     icon: UndoDot,
                     iconColor: 'text-blue-600',
-                    iconBg: 'bg-blue-50',
-                    hoverBg: 'hover:bg-blue-50',
-                    arrowHover: 'group-hover:text-blue-400',
-                    label: 'Recall',
-                    sub: 'Memory-based questions',
+                    iconBg: 'bg-blue-50 border border-blue-200',
+                    hoverBg: 'hover:bg-blue-50/50 hover:border-blue-200',
+                    label: 'Recall Questions',
+                    sub: 'Memory-based exam recall',
                   },
                   {
                     to: '/mock-exam',
                     icon: Trophy,
-                    iconColor: 'text-amber-600',
-                    iconBg: 'bg-amber-50',
-                    hoverBg: 'hover:bg-amber-50',
-                    arrowHover: 'group-hover:text-amber-400',
+                    iconColor: 'text-violet-600',
+                    iconBg: 'bg-violet-50 border border-violet-200',
+                    hoverBg: 'hover:bg-violet-50/50 hover:border-violet-200',
                     label: 'Mock Exam',
                     sub: tests.length > 0
                       ? `${tests.length} exam${tests.length !== 1 ? 's' : ''} available`
                       : 'Timed full-length exam',
                   },
+                  {
+                    to: '/qbank',
+                    icon: BookOpen,
+                    iconColor: 'text-slate-400',
+                    iconBg: 'bg-slate-100 border border-slate-200',
+                    hoverBg: '',
+                    label: 'QBank (MCQs)',
+                    sub: 'Subject-wise practice',
+                    disabled: true,
+                    badge: 'Coming Soon ⏳'
+                  },
                 ].map(item => {
                   if (item.disabled) {
                     return (
                       <div
-                        key={item.to}
-                        aria-disabled="true"
-                        title="MCQ QBank is coming soon"
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/60 border border-slate-100 opacity-75 cursor-not-allowed select-none"
+                        key={item.label}
+                        className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50/60 border border-slate-200/80 opacity-75 cursor-not-allowed select-none"
                       >
-                        <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
-                          <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                        <div className={`w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
+                          <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-slate-700">{item.label}</p>
-                            <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                            <p className="text-xs font-bold text-slate-700">{item.label}</p>
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
                               {item.badge}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400">{item.sub}</p>
+                          <p className="text-[11px] font-medium text-slate-400">{item.sub}</p>
                         </div>
-                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">
-                          Disabled
-                        </span>
                       </div>
                     );
                   }
@@ -466,16 +514,23 @@ export const Dashboard = () => {
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={`flex items-center gap-3 p-3 rounded-xl ${item.hoverBg} group transition-colors`}
+                      className={`flex items-center gap-3 p-3.5 rounded-2xl border border-slate-200/80 ${item.hoverBg} group transition-all`}
                     >
-                      <div className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
-                        <item.icon className={`w-4 h-4 ${item.iconColor}`} />
+                      <div className={`w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}>
+                        <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800">{item.label}</p>
-                        <p className="text-xs text-slate-400">{item.sub}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-slate-800 group-hover:text-violet-600 transition-colors">{item.label}</p>
+                          {item.badge && (
+                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-medium text-slate-400">{item.sub}</p>
                       </div>
-                      <ChevronRight className={`w-4 h-4 text-slate-300 ${item.arrowHover} transition-colors shrink-0`} />
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500 group-hover:translate-x-0.5 transition-all shrink-0" />
                     </Link>
                   );
                 })}

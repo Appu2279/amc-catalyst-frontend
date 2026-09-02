@@ -7,6 +7,8 @@ export const createQuestion = (data) => axiosInstance.post('/questions/admin', d
 export const updateQuestion = (id, data) => axiosInstance.put(`/questions/admin/${id}`, data);
 export const deleteQuestion = (id) => axiosInstance.delete(`/questions/admin/${id}`);
 export const toggleQuestion = (id) => axiosInstance.patch(`/questions/admin/${id}/toggle`);
+// Marks a question as a free sample — visible to students without a plan.
+export const toggleQuestionFree = (id) => axiosInstance.patch(`/questions/admin/${id}/free`);
 
 // Import Batches
 export const getImportBatches = () => axiosInstance.get('/admin/import-batches');
@@ -17,6 +19,12 @@ export const deleteImportBatch = (id) => axiosInstance.delete(`/admin/import-bat
 // Show/hide a whole batch for students. Reversible — nothing is deleted.
 export const setBatchVisibility = (id, is_visible) =>
   axiosInstance.patch(`/admin/import-batches/${id}/visibility`, { is_visible });
+
+// Opens a whole recall month as a free sample — one switch instead of 150.
+// Distinct from visibility: hiding a batch takes it from paying students too,
+// this only changes whether payment is required to see it.
+export const setBatchFree = (id, is_free) =>
+  axiosInstance.patch(`/admin/import-batches/${id}/free`, { is_free });
 
 // Batch membership. A question's batch is one column on the question, so
 // removing it from a batch only unassigns it — the question, its options and
@@ -36,6 +44,8 @@ export const getMockTest = (id) => axiosInstance.get(`/admin/mock-tests/${id}`);
 export const updateMockTest = (id, data) => axiosInstance.put(`/admin/mock-tests/${id}`, data);
 export const deleteMockTest = (id) => axiosInstance.delete(`/admin/mock-tests/${id}`);
 export const togglePublishMockTest = (id) => axiosInstance.patch(`/admin/mock-tests/${id}/publish`);
+// Marks a whole exam as a free sample — sittable without a plan.
+export const toggleFreeMockTest = (id) => axiosInstance.patch(`/admin/mock-tests/${id}/free`);
 export const addMockTestQuestions = (id, questions) =>
   axiosInstance.post(`/admin/mock-tests/${id}/questions`, { questions });
 export const removeMockTestQuestion = (id, qId) =>
@@ -93,3 +103,36 @@ export const uploadNote = (formData, onUploadProgress) =>
 
 export const updateNoteAdmin = (id, data) => axiosInstance.put(`/notes/admin/${id}`, data);
 export const deleteNoteAdmin = (id) => axiosInstance.delete(`/notes/admin/${id}`);
+
+// ── Payment claims ────────────────────────────────────────────────────────────
+//
+// Manual QR payments: the buyer says they paid, an admin checks the bank
+// statement, and approving is what creates the subscription. Nothing here
+// treats the claim as proof — see services/payment.service.js on the backend.
+
+// status: 'pending' | 'approved' | 'rejected'. Pending returns only claims the
+// buyer actually submitted; pass includeUnsubmitted to also see the ones who
+// opened the QR page and never came back.
+export const getPaymentClaims = (status = 'pending', includeUnsubmitted = false) =>
+  axiosInstance.get('/payment-claims/admin', {
+    params: { status, ...(includeUnsubmitted ? { include_unsubmitted: 'true' } : {}) },
+  });
+
+export const getPaymentClaim = (id) => axiosInstance.get(`/payment-claims/admin/${id}`);
+
+export const approvePaymentClaim = (id, note) =>
+  axiosInstance.post(`/payment-claims/admin/${id}/approve`, { note });
+
+// The backend requires a reason — it is what the buyer gets told.
+export const rejectPaymentClaim = (id, note) =>
+  axiosInstance.post(`/payment-claims/admin/${id}/reject`, { note });
+
+/**
+ * The screenshot, as a blob.
+ *
+ * Not usable with ProtectedImage: that component proxies a public storage URL,
+ * and these are private Cloudinary assets the backend streams itself. Fetched
+ * here so the Authorization header goes with it.
+ */
+export const getPaymentClaimScreenshot = (id) =>
+  axiosInstance.get(`/payment-claims/admin/${id}/screenshot`, { responseType: 'blob' });

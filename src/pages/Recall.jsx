@@ -4,6 +4,9 @@ import { getQuestions, getSubjectsPublic, checkAnswer, getPracticeProgress, rese
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
 import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb, Layers, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { useAccess } from '@/hooks/useAccess';
+import { LockedSection, LOCKED_COPY } from '@/components/LockedSection';
+import { SampleBanner } from '@/components/SampleBanner';
 
 const DIFFICULTIES = ['', 'easy', 'medium', 'hard'];
 
@@ -47,6 +50,7 @@ const ExplanationText = ({ text, className = '' }) => {
 };
 
 export const Recall = () => {
+  const { sections, samples, loading: accessLoading } = useAccess();
   const [questions, setQuestions]     = useState([]);
   const [loading, setLoading]         = useState(true);
   const [subjects, setSubjects]       = useState([]);
@@ -323,12 +327,37 @@ export const Recall = () => {
     </div>
   );
 
+  // The server already refuses these requests; this turns the refusal into
+  // something a student can act on instead of an empty page. Placed above the
+  // batch picker so an unpaid student never sees a month list they cannot open,
+  // and after every hook, so the early return does not change hook order.
+  if (accessLoading) {
+    return (
+      <DashboardLayout active="recall">
+        <div className="p-16 text-center text-sm text-slate-400">Loading…</div>
+      </DashboardLayout>
+    );
+  }
+
+  // Locked only when there is nothing to show. A section with samples opens
+  // instead, because a taste of the material sells it better than a wall does.
+  if (!sections.recall && !samples.recall) {
+    return (
+      <DashboardLayout active="recall">
+        <LockedSection {...LOCKED_COPY.recall} sampleCount={samples.recall} />
+      </DashboardLayout>
+    );
+  }
+
+  const showingSamples = !sections.recall && samples.recall > 0;
+
   // ── Batch picker ────────────────────────────────────────────────────────────
   // Shown until a recall month is chosen, matching how Mock Exams and Notes ask
   // the student to pick something before the content opens.
   if (batchesLoaded && batchId === null) {
     return (
       <DashboardLayout active="recall">
+        {showingSamples && <SampleBanner count={samples.recall} noun="questions" />}
         <div className="min-h-full bg-slate-50 py-6 px-4">
           <div className="max-w-5xl mx-auto">
             <div className="mb-8">
@@ -405,6 +434,7 @@ export const Recall = () => {
 
   return (
     <DashboardLayout active="recall">
+      {showingSamples && <SampleBanner count={samples.recall} noun="questions" />}
       <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       <div className="flex h-full overflow-hidden">
 

@@ -10,7 +10,8 @@ export const Login = () => {
   // Set when Register redirects here after creating the account. Read once into
   // initial state rather than in an effect, so the field is filled on the first
   // render instead of flashing empty.
-  const { state } = useLocation();
+  const location = useLocation();
+  const { state } = location;
   const justRegistered = Boolean(state?.registered);
 
   const [email, setEmail]       = useState(state?.email ?? '');
@@ -40,7 +41,13 @@ export const Login = () => {
       const response = await loginUser({ email: email.trim(), password });
       const { user, token } = response.data;
       login(user, token);
-      navigate(user?.role === 'admin' ? '/admin' : '/dashboard');
+      // ?next= is set when a signed-out visitor clicked a plan on pricing. It is
+      // read as a path only — never a full URL — so a crafted link cannot use
+      // the login page to bounce someone off to another site.
+      const next = new URLSearchParams(location.search).get('next');
+      const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
+
+      navigate(safeNext ?? (user?.role === 'admin' ? '/admin' : '/dashboard'));
     } catch (err) {
       const status  = err?.response?.status;
       const message = err?.response?.data?.message;
@@ -98,7 +105,10 @@ export const Login = () => {
           <Link to="/" className="flex items-center gap-2 text-slate-400 hover:text-brand-dark transition-colors font-bold text-xs uppercase tracking-widest">
             <ArrowLeft className="w-4 h-4" /> Home
           </Link>
-          <Link to="/register" className="text-xs font-bold text-brand-violet border-b-2 border-brand-violet/10 hover:border-brand-violet transition-all pb-1 uppercase tracking-widest">
+          {/* ?next= travels on to register too. Most buyers coming from a pricing
+              card do not have an account yet, so losing the plan on this hop
+              would lose it for the majority of them. */}
+          <Link to={`/register${location.search}`} className="text-xs font-bold text-brand-violet border-b-2 border-brand-violet/10 hover:border-brand-violet transition-all pb-1 uppercase tracking-widest">
             Create Account
           </Link>
         </div>

@@ -4,6 +4,9 @@ import { getQuestions, getSubjectsPublic, checkAnswer } from '@/api/userService'
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
 import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb } from 'lucide-react';
+import { useAccess } from '@/hooks/useAccess';
+import { LockedSection, LOCKED_COPY } from '@/components/LockedSection';
+import { SampleBanner } from '@/components/SampleBanner';
 
 const DIFFICULTIES = ['', 'easy', 'medium', 'hard'];
 
@@ -38,6 +41,7 @@ const ExplanationText = ({ text, className = '' }) => {
 };
 
 export const QBank = () => {
+  const { sections, samples, loading: accessLoading } = useAccess();
   const [questions, setQuestions]     = useState([]);
   const [loading, setLoading]         = useState(true);
   const [subjects, setSubjects]       = useState([]);
@@ -175,8 +179,33 @@ export const QBank = () => {
     </div>
   );
 
+  // The server already refuses these requests; this turns the refusal into
+  // something a student can act on instead of an empty page. Rendering the
+  // locked state while access is still loading would flash a paywall at people
+  // who have paid, so loading is its own branch.
+  if (accessLoading) {
+    return (
+      <DashboardLayout active="qbank">
+        <div className="p-16 text-center text-sm text-slate-400">Loading…</div>
+      </DashboardLayout>
+    );
+  }
+
+  // Locked only when there is nothing to show. A section with samples opens
+  // instead, because a taste of the material sells it better than a wall does.
+  if (!sections.qbank && !samples.qbank) {
+    return (
+      <DashboardLayout active="qbank">
+        <LockedSection {...LOCKED_COPY.qbank} sampleCount={samples.qbank} />
+      </DashboardLayout>
+    );
+  }
+
+  const showingSamples = !sections.qbank && samples.qbank > 0;
+
   return (
     <DashboardLayout active="qbank">
+      {showingSamples && <SampleBanner count={samples.qbank} noun="questions" />}
       <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       <div className="flex h-full overflow-hidden">
 

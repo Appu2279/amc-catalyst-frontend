@@ -12,13 +12,14 @@ import {
   getSubjects,
   getSubjectTopics,
   setBatchVisibility,
+  setBatchFree,
   getUnassignedQuestions,
   addQuestionsToBatch,
   removeQuestionFromBatch,
 } from '@/api/adminService';
 import {
   Plus, Eye, EyeOff, Check, Trash2, X, CheckCircle2, AlertCircle, Copy, Pencil, Save,
-  Unlink, ListPlus, Search, Loader2,
+  Unlink, ListPlus, Search, Loader2, Sparkles,
 } from 'lucide-react';
 import { Lightbox } from '@/components/ui/Lightbox';
 
@@ -933,6 +934,7 @@ export const AdminImportBatches = () => {
   const [toast,         setToast]         = useState(null);
   // Which batch's visibility toggle is mid-flight, so only that row disables.
   const [visibilityBusy, setVisibilityBusy] = useState(null);
+  const [freeBusy, setFreeBusy] = useState(null);
 
   const [form, setForm] = useState({ title: '', questions_pdf: '', answers_pdf: '' });
 
@@ -969,6 +971,29 @@ export const AdminImportBatches = () => {
       showToast('error', err?.response?.data?.message || 'Could not change visibility');
     } finally {
       setVisibilityBusy(null);
+    }
+  };
+
+  /**
+   * Opens or closes a whole recall month as a free sample.
+   *
+   * Batch-level on purpose: a sitting is 150 questions, and marking samples one
+   * at a time is not a thing anyone will do. The month is the unit recall is
+   * written, sold and revised in, so it is the unit this works on too.
+   */
+  const toggleFree = async (batch) => {
+    const next = !batch.is_free;
+    setFreeBusy(batch.id);
+    try {
+      await setBatchFree(batch.id, next);
+      setBatches(all => all.map(b => (b.id === batch.id ? { ...b, is_free: next } : b)));
+      showToast('success', next
+        ? `"${batch.title}" is now a free sample — anyone signed in can practise it`
+        : `"${batch.title}" now needs a plan`);
+    } catch (err) {
+      showToast('error', err?.response?.data?.message || 'Could not change sample status');
+    } finally {
+      setFreeBusy(null);
     }
   };
 
@@ -1204,6 +1229,25 @@ export const AdminImportBatches = () => {
                         {b.is_visible === false
                           ? <><EyeOff className="w-3.5 h-3.5" /> Hidden</>
                           : <><Eye className="w-3.5 h-3.5" /> Visible</>}
+                      </button>
+
+                      {/* Opens the whole month to students without a plan. One
+                          switch rather than 150, because the month is the unit
+                          recall is actually managed in. */}
+                      <button
+                        onClick={() => toggleFree(b)}
+                        disabled={freeBusy === b.id}
+                        title={b.is_free
+                          ? 'A free sample — click to put this month behind the paywall'
+                          : 'Needs a plan — click to open this month as a free sample'}
+                        className={`ml-1.5 inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                          b.is_free
+                            ? 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100'
+                            : 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {b.is_free ? 'Free sample' : 'Paid'}
                       </button>
                     </td>
                     <td className="px-4 py-3 text-slate-500 hidden lg:table-cell text-xs">{fmt(b.createdAt)}</td>

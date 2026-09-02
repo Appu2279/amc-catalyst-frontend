@@ -9,10 +9,11 @@ import {
   updateQuestion,
   deleteQuestion,
   toggleQuestion,
+  toggleQuestionFree,
   getSubjects,
   getSubjectTopics,
 } from '@/api/adminService';
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
@@ -433,6 +434,21 @@ export const AdminQuestions = () => {
     }
   };
 
+  const handleToggleFree = async (q) => {
+    const prev = q.is_free;
+    setQuestions((qs) => qs.map((x) => x.id === q.id ? { ...x, is_free: !x.is_free } : x));
+    try {
+      await toggleQuestionFree(q.id);
+      showToast(
+        'success',
+        prev ? 'Back behind the paywall' : 'Now a free sample — students without a plan can try it'
+      );
+    } catch {
+      setQuestions((qs) => qs.map((x) => x.id === q.id ? { ...x, is_free: prev } : x));
+      showToast('error', 'Could not change sample status');
+    }
+  };
+
   const handleToggle = async (q) => {
     const prev = q.is_active;
     setQuestions((qs) => qs.map((x) => x.id === q.id ? { ...x, is_active: !x.is_active } : x));
@@ -583,6 +599,7 @@ export const AdminQuestions = () => {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Difficulty</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Source</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Active</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Sample</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -619,6 +636,19 @@ export const AdminQuestions = () => {
                       <button onClick={() => handleToggle(q)}>
                         {q.is_active
                           ? <ToggleRight className="w-6 h-6 text-green-500" />
+                          : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                      </button>
+                    </td>
+                    {/* Free samples let a student who has not paid try a few
+                        questions. Kept beside Active so both switches that
+                        decide who sees a question sit together. */}
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleToggleFree(q)}
+                        title={q.is_free ? 'A free sample — click to put it behind the paywall' : 'Behind the paywall — click to make it a free sample'}
+                      >
+                        {q.is_free
+                          ? <ToggleRight className="w-6 h-6 text-amber-500" />
                           : <ToggleLeft className="w-6 h-6 text-slate-300" />}
                       </button>
                     </td>

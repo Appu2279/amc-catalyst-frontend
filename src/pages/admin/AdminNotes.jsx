@@ -205,6 +205,23 @@ export const AdminNotes = () => {
     }
   };
 
+  const toggleFree = async (note) => {
+    try {
+      await updateNoteAdmin(note.id, { is_free: !note.is_free });
+      setNotes((all) =>
+        all.map((n) => (n.id === note.id ? { ...n, is_free: !n.is_free } : n))
+      );
+      notify(
+        'success',
+        note.is_free
+          ? 'Now behind the paywall — only students with a Notes plan can open it'
+          : 'Now a free sample — any signed-in student can read it'
+      );
+    } catch (err) {
+      notify('error', errorMessage(err, 'Could not change access'));
+    }
+  };
+
   const confirmDelete = async () => {
     try {
       await deleteNoteAdmin(deleteTarget.id);
@@ -226,7 +243,8 @@ export const AdminNotes = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Notes</h1>
           <p className="text-sm text-slate-500 mt-1">
-            PDFs shown to students on their Notes page. Uploads appear immediately.
+            PDFs shown to students on their Notes page. Uploads appear immediately and are
+            paid by default — switch on "Free sample" to open one to everyone.
           </p>
         </div>
         <button
@@ -258,6 +276,7 @@ export const AdminNotes = () => {
                   <th className="text-left font-medium px-5 py-3">Size</th>
                   <th className="text-left font-medium px-5 py-3">Pages</th>
                   <th className="text-left font-medium px-5 py-3">Order</th>
+                  <th className="text-left font-medium px-5 py-3">Free sample</th>
                   <th className="text-left font-medium px-5 py-3">Visible</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -276,6 +295,12 @@ export const AdminNotes = () => {
                     <td className="px-5 py-3 text-slate-500">{formatSize(note.file_size_bytes)}</td>
                     <td className="px-5 py-3 text-slate-500">{note.page_count ?? '—'}</td>
                     <td className="px-5 py-3 text-slate-500 tabular-nums">{note.sort_order}</td>
+                    {/* Free samples are readable without a plan. Everything else
+                        sits behind the paywall, so this is the switch that
+                        decides whether a note is product or marketing. */}
+                    <td className="px-5 py-3">
+                      <Toggle value={note.is_free} onChange={() => toggleFree(note)} />
+                    </td>
                     <td className="px-5 py-3">
                       <Toggle value={note.is_active} onChange={() => toggleActive(note)} />
                     </td>

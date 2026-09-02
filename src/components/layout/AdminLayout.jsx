@@ -3,9 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard, BookOpen, HelpCircle, Upload,
-  ClipboardList, GraduationCap, LogOut, Menu, X, FileText,
+  ClipboardList, GraduationCap, LogOut, Menu, X, FileText, IndianRupee,
 } from 'lucide-react';
-import { getMockTests } from '@/api/adminService';
+import { getMockTests, getPaymentClaims } from '@/api/adminService';
 
 const NAV = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -15,6 +15,7 @@ const NAV = [
   { path: '/admin/mock-tests', label: 'Mock Tests', icon: ClipboardList },
   { path: '/admin/courses', label: 'Courses', icon: GraduationCap },
   { path: '/admin/notes', label: 'Notes', icon: FileText },
+  { path: '/admin/payments', label: 'Payments', icon: IndianRupee },
 ];
 
 const Toast = ({ toast }) => {
@@ -46,6 +47,7 @@ export const AdminLayout = ({ children }) => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [draftCount, setDraftCount] = useState(0);
+  const [pendingPayments, setPendingPayments] = useState(0);
 
   useEffect(() => {
     getMockTests()
@@ -54,7 +56,25 @@ export const AdminLayout = ({ children }) => {
         setDraftCount(Array.isArray(tests) ? tests.filter((t) => !t.is_published).length : 0);
       })
       .catch(() => {});
+
   }, []);
+
+  // Payments are a queue with a promise attached — the buyer is told two days —
+  // so the count belongs in the sidebar rather than only on the page.
+  //
+  // Refetched on navigation AND on an explicit event, because the count changes
+  // from inside the payments page itself: approving a claim without this leaves
+  // the badge showing a number that is no longer true.
+  useEffect(() => {
+    const refresh = () =>
+      getPaymentClaims('pending')
+        .then((res) => setPendingPayments((res.data ?? []).length))
+        .catch(() => {});
+
+    refresh();
+    window.addEventListener('payment-claims-changed', refresh);
+    return () => window.removeEventListener('payment-claims-changed', refresh);
+  }, [location.pathname]);
 
   const adminName = user?.fullName ?? user?.name ?? user?.email ?? 'Admin';
   const initial = adminName.charAt(0).toUpperCase();
@@ -94,6 +114,15 @@ export const AdminLayout = ({ children }) => {
             >
               <item.icon className="w-5 h-5 shrink-0" />
               <span className="flex-1">{item.label}</span>
+              {item.label === 'Payments' && pendingPayments > 0 && (
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    active ? 'bg-white/20 text-white' : 'bg-red-500 text-white'
+                  }`}
+                >
+                  {pendingPayments}
+                </span>
+              )}
               {item.label === 'Mock Tests' && draftCount > 0 && (
                 <span
                   className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${

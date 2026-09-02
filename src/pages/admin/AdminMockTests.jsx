@@ -9,6 +9,7 @@ import {
   updateMockTest,
   deleteMockTest,
   togglePublishMockTest,
+  toggleFreeMockTest,
   getSubjects,
   getQuestionPool,
 } from '@/api/adminService';
@@ -448,6 +449,16 @@ export const AdminMockTests = () => {
     }
   };
 
+  const handleFreeToggle = async (t) => {
+    const prev = t.is_free;
+    setTests((ts) => ts.map((x) => x.id === t.id ? { ...x, is_free: !x.is_free } : x));
+    try {
+      await toggleFreeMockTest(t.id);
+    } catch {
+      setTests((ts) => ts.map((x) => x.id === t.id ? { ...x, is_free: prev } : x));
+    }
+  };
+
   const handlePublishToggle = async (t) => {
     const prev = t.is_published;
     setTests((ts) => ts.map((x) => x.id === t.id ? { ...x, is_published: !x.is_published } : x));
@@ -542,6 +553,7 @@ export const AdminMockTests = () => {
                 <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Questions</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Duration</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Sample</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Created</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
@@ -567,6 +579,20 @@ export const AdminMockTests = () => {
                       {t.duration_minutes ? `${t.duration_minutes} min` : '—'}
                     </td>
                     <td className="px-4 py-3"><PublishBadge published={t.is_published} /></td>
+                    {/* A free sample exam is sittable without a plan — the
+                        strongest thing to hand someone still deciding. Its own
+                        column rather than an icon in Actions, because it is a
+                        state of the exam, not an action on it. */}
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleFreeToggle(t)}
+                        title={t.is_free ? 'Free sample — click to put it behind the paywall' : 'Behind the paywall — click to make it a free sample'}
+                      >
+                        {t.is_free
+                          ? <ToggleRight className="w-6 h-6 text-amber-500" />
+                          : <ToggleLeft className="w-6 h-6 text-slate-300" />}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-slate-500 hidden lg:table-cell text-xs">{fmt(t.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1.5">

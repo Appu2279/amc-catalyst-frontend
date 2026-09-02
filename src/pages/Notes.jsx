@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { getNotes, getNoteFile } from '@/api/noteService';
-import { FileText, ChevronLeft, AlertCircle, Loader2, ArrowRight, BookOpen } from 'lucide-react';
+import { FileText, ChevronLeft, AlertCircle, Loader2, ArrowRight, BookOpen, Lock, Sparkles } from 'lucide-react';
 import { PdfViewer } from '@/components/PdfViewer';
+import { Link } from 'react-router-dom';
+import { useAccess } from '@/hooks/useAccess';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -20,21 +22,26 @@ const Skeleton = ({ className = '' }) => (
   <div className={`animate-pulse bg-slate-100 rounded-lg ${className}`} />
 );
 
-const NoteCard = ({ note, onOpen }) => (
+const NoteCard = ({ note, onOpen, locked }) => (
   <button
-    onClick={() => onOpen(note)}
+    onClick={() => (locked ? null : onOpen(note))}
+    aria-disabled={locked}
+    title={locked ? 'Included with a plan' : undefined}
     className="group relative text-left bg-white rounded-2xl border border-slate-200 p-6 flex flex-col
                shadow-[0_1px_2px_rgba(15,23,42,0.04)]
                hover:shadow-[0_12px_28px_-12px_rgba(79,70,229,0.35)] hover:border-violet-200
                hover:-translate-y-0.5 transition-all duration-200"
+    style={locked ? { cursor: 'default' } : undefined}
   >
     {/* Hairline of brand colour that only appears on hover — enough to make the
         card feel alive without colouring the whole grid. */}
     <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-400 to-transparent
                      opacity-0 group-hover:opacity-100 transition-opacity" />
 
-    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center
-                    justify-center mb-5 shadow-sm shadow-violet-500/20">
+    <div
+      className="w-11 h-11 rounded-xl flex items-center justify-center mb-5 shadow-sm
+                 bg-gradient-to-br from-violet-500 to-blue-500 shadow-violet-500/20"
+    >
       <FileText className="w-5 h-5 text-white" />
     </div>
 
@@ -58,10 +65,19 @@ const NoteCard = ({ note, onOpen }) => (
         </span>
       ) : <span />}
 
-      <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600">
-        Read
-        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-      </span>
+      {/* A locked card must not offer to open — "Read →" on something that does
+          nothing when clicked reads as a broken page rather than a paywall. */}
+      {locked ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-700">
+          <Lock className="h-3 w-3" />
+          Unlock
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600">
+          Read
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </span>
+      )}
     </div>
   </button>
 );
@@ -145,6 +161,7 @@ const NoteViewer = ({ note, onBack }) => {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export const Notes = () => {
+  const { sections, loading: accessLoading } = useAccess();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errored, setErrored] = useState(false);
@@ -200,11 +217,45 @@ export const Notes = () => {
               <p className="text-sm text-slate-400 mt-1">They will appear here as soon as they are added.</p>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {notes.map((note) => (
-                <NoteCard key={note.id} note={note} onOpen={setActive} />
-              ))}
-            </div>
+            <>
+              {!accessLoading && !sections.notes && notes.some((n) => !n.is_free) && (
+                <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-blue-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-violet">
+                      <Sparkles className="h-3 w-3 text-white" />
+                    </span>
+                    <p className="text-sm text-slate-700">
+                      <span className="font-bold text-slate-900">
+                        Specialist-written notes for every subject.
+                      </span>{' '}
+                      <span className="text-slate-500">
+                        Samples below are open to everyone — the rest comes with a plan.
+                      </span>
+                    </p>
+                  </div>
+                  <Link
+                    to="/pricing"
+                    className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-brand-violet px-4 py-1.5 text-sm font-bold text-white shadow-sm shadow-brand-violet/25 transition hover:bg-brand-violet-hover"
+                  >
+                    Unlock all
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              )}
+
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {notes.map((note) => (
+                  <NoteCard
+                    key={note.id}
+                    note={note}
+                    onOpen={setActive}
+                    // is_free is what the server uses to decide too, so the card
+                    // and the file endpoint cannot disagree about one note.
+                    locked={!accessLoading && !sections.notes && !note.is_free}
+                  />
+                ))}
+              </div>
+            </>
           )}
           </div>
         </div>

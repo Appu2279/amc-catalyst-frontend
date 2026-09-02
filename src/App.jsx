@@ -15,6 +15,8 @@ import { Contact } from '@/pages/Contact';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
 import { RegistrationSuccess } from '@/pages/RegistrationSuccess';
+import { Checkout } from '@/pages/Checkout';
+import { PaymentSubmitted } from '@/pages/PaymentSubmitted';
 
 // User dashboard pages
 import { Dashboard } from '@/pages/Dashboard';
@@ -34,6 +36,7 @@ import { AdminMockTests } from '@/pages/admin/AdminMockTests';
 import { AdminMockTestDetail } from '@/pages/admin/AdminMockTestDetail';
 import { AdminCourses } from '@/pages/admin/AdminCourses';
 import { AdminNotes } from '@/pages/admin/AdminNotes';
+import { AdminPaymentClaims } from '@/pages/admin/AdminPaymentClaims';
 import { LegalPage } from '@/pages/LegalPage';
 import { TERMS, PRIVACY } from '@/content/legal';
 
@@ -104,6 +107,12 @@ export const App = () => (
           <Route path="/mock-exam" element={<MockExam />} />
           <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
           <Route path="/mock-exam/:testId/result/:attemptId"  element={<MockExamResult />} />
+
+          {/* Buying. Protected because a claim is opened against the signed-in
+              account — pricing sends a signed-out visitor through login with
+              ?next= so they arrive here with the plan they chose intact. */}
+          <Route path="/checkout/:courseId" element={<Checkout />} />
+          <Route path="/payment-submitted" element={<PaymentSubmitted />} />
         </Route>
 
         {/* Admin panel — requires role=admin */}
@@ -116,6 +125,7 @@ export const App = () => (
           <Route path="/admin/mock-tests/:id" element={<AdminMockTestDetail />} />
           <Route path="/admin/courses" element={<AdminCourses />} />
           <Route path="/admin/notes" element={<AdminNotes />} />
+          <Route path="/admin/payments" element={<AdminPaymentClaims />} />
         </Route>
       </Routes>
     </AuthProvider>

@@ -3,6 +3,7 @@ import { ArrowRight, BookOpen, Check, ClipboardList, Globe, HelpCircle, MessageS
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getCourses } from '../api/courseService';
+import { useAuth } from '@/context/AuthContext';
 
 // Static supporting copy from the client's sheet — presentation only, so it is
 // not stored against any plan.
@@ -37,6 +38,16 @@ const ACCENTS = {
 };
 
 const PlanCard = ({ course, index }) => {
+  const { isAuthenticated } = useAuth();
+
+  // Signed in: straight to checkout. Signed out: through login, which sends
+  // them on to the same place afterwards rather than dumping them on the
+  // dashboard having forgotten what they came to buy.
+  const checkout = `/checkout/${course.id}`;
+  const checkoutHref = isAuthenticated
+    ? checkout
+    : `/login?next=${encodeURIComponent(checkout)}`;
+
   const pricing = course.CoursePricings?.[0];
   const accent = ACCENTS[course.badge] ?? { ring: 'border-slate-100', chip: '' };
   const isFeatured = course.badge === 'MOST POPULAR' || course.badge === 'BEST VALUE';
@@ -117,7 +128,11 @@ const PlanCard = ({ course, index }) => {
         )}
       </ul>
 
-      <Link to="/register" className="mt-7">
+      {/* Where "Enroll" goes depends on who is clicking. A signed-in buyer should
+          not be sent to register, and the plan they picked has to survive the
+          trip through login — otherwise they land back on pricing and pick
+          again, which is where checkout funnels lose people. */}
+      <Link to={checkoutHref} className="mt-7">
         <button
           className={`flex w-full items-center justify-center gap-2 rounded-xl py-4 text-sm font-black transition-all ${
             isFeatured

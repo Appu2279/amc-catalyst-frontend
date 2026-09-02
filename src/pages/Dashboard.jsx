@@ -21,6 +21,8 @@ import {
   Clock,
   UndoDot,
 } from 'lucide-react';
+import { useAccess } from '@/hooks/useAccess';
+import { PlanStatus } from '@/components/PlanStatus';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -96,6 +98,7 @@ const SubjectBar = ({ name, accuracy, total, correct }) => {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export const Dashboard = () => {
+  const { subscriptions, loading: accessLoading } = useAccess();
   const { user } = useAuth();
 
   const [loading, setLoading]       = useState(true);
@@ -163,6 +166,11 @@ export const Dashboard = () => {
             Start Mock Exam
           </Link>
         </div>
+
+        {/* Where the student stands: what they hold, when it lapses, or that a
+            payment is still being checked by hand. Sits directly under the
+            greeting because it explains everything below it. */}
+        <PlanStatus subscriptions={subscriptions} loading={accessLoading} />
 
         {/* ── Stat cards ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

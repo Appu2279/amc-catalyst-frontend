@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Stethoscope, ArrowRight, ShieldCheck, Mail, User, Lock, Sparkles,
   Briefcase, Globe, GraduationCap, ChevronDown,
@@ -40,6 +40,8 @@ export const Register = () => {
   const [toast, setToast]                       = useState(null);
 
   const navigate = useNavigate();
+
+  const location = useLocation();
 
   const showToast = (type, message) => setToast({ type, message });
 
@@ -88,7 +90,9 @@ export const Register = () => {
       // The email is carried over so Login can confirm the account was created
       // and prefill the field — without that the student lands on a bare login
       // form with no sign the registration worked.
-      navigate('/login', {
+      // Preserves ?next= across signup, so someone who came from a pricing card
+      // lands on checkout for the plan they chose rather than on the dashboard.
+      navigate(`/login${location.search}`, {
         replace: true,
         state: { registered: true, email: email.trim() },
       });

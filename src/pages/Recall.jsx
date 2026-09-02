@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { getQuestions, getSubjectsPublic, checkAnswer, getPracticeProgress, resetPracticeProgress, getQuestionBatches } from '@/api/userService';
 import { ProtectedImage } from '@/components/ProtectedImage';

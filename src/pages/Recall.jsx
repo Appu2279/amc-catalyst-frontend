@@ -3,7 +3,7 @@ import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { getQuestions, getSubjectsPublic, checkAnswer, getPracticeProgress, resetPracticeProgress, getQuestionBatches } from '@/api/userService';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
-import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb, Layers, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb, Layers, ArrowRight, CheckCircle2, Sparkles, Lock } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { LockedSection, LOCKED_COPY } from '@/components/LockedSection';
 import { SampleBanner } from '@/components/SampleBanner';

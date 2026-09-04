@@ -334,17 +334,28 @@ export const PdfViewer = ({ data, title }) => {
   }, [measure]);
   useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
-  // Keep the page the reader is looking at under the cursor across a zoom step,
-  // instead of jumping back to wherever the raw scroll offset now lands.
+  // Keep a point in the document under a fixed point on screen across a zoom
+  // step, instead of jumping back to wherever the raw scroll offset now lands.
+  // `point` is viewport-relative (offset from the scroller's own top-left) —
+  // defaulting to the top-left corner reproduces the old top-anchored
+  // behaviour for the buttons, keyboard and wheel; pinch-zoom below passes the
+  // two fingers' midpoint instead, so the spot being pinched stays put.
   const anchorRef = useRef(null);
-  const zoomTo = useCallback((next) => {
+  const zoomTo = useCallback((next, point = { offsetX: 0, offsetY: 0 }) => {
     const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(next * 20) / 20));
     const el = containerRef.current;
-    const { items } = layoutRef.current;
+    const { items, width: layoutWidth } = layoutRef.current;
     if (el && items.length) {
       const index = Math.min(Math.max(currentRef.current - 1, 0), items.length - 1);
       const item = items[index];
-      anchorRef.current = { index, within: (el.scrollTop - item.top) / (item.height || 1) };
+      const itemLeft = (layoutWidth - item.width) / 2; // pages are centered — see PageView
+      anchorRef.current = {
+        index,
+        withinY: (el.scrollTop + point.offsetY - item.top) / (item.height || 1),
+        withinX: (el.scrollLeft + point.offsetX - itemLeft) / (item.width || 1),
+        offsetX: point.offsetX,
+        offsetY: point.offsetY,
+      };
     }
     setZoom(clamped);
   }, []);
@@ -356,7 +367,11 @@ export const PdfViewer = ({ data, title }) => {
     if (anchor) {
       anchorRef.current = null;
       const item = layout.items[anchor.index];
-      if (el && item) el.scrollTop = item.top + anchor.within * item.height;
+      if (el && item) {
+        const itemLeft = (layout.width - item.width) / 2;
+        el.scrollTop = item.top + anchor.withinY * item.height - anchor.offsetY;
+        el.scrollLeft = itemLeft + anchor.withinX * item.width - anchor.offsetX;
+      }
     }
     measure();
   }, [layout, measure]);
@@ -374,6 +389,84 @@ export const PdfViewer = ({ data, title }) => {
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [zoom, zoomTo, doc]);
+
+  // Two-finger pinch on touch devices — the gesture most readers reach for
+  // first, and on tablets (the primary device for a lot of students) the only
+  // one available at all. Left alone, a pinch here is caught by the OS/browser
+  // as a whole-page zoom, which just upscales the already-rendered canvas
+  // pixels; touch-action below stops that so this handler can re-render the
+  // page at the new resolution instead (see the render-at-zoomed-resolution
+  // note in PageView), which is what actually keeps text sharp.
+  //
+  // zoomRef mirrors `zoom` so the gesture can read its live value without the
+  // effect depending on `zoom` itself — that dependency would re-attach the
+  // listeners on every frame of the pinch (setZoom fires continuously) and
+  // wipe pinchRef's in-progress state mid-gesture.
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const pinchRef = useRef(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !doc) return;
+
+    const distance = (touches) =>
+      Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+
+    const midpoint = (touches) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        offsetX: (touches[0].clientX + touches[1].clientX) / 2 - rect.left,
+        offsetY: (touches[0].clientY + touches[1].clientY) / 2 - rect.top,
+      };
+    };
+
+    let frame = 0;
+
+    const onTouchStart = (e) => {
+      if (e.touches.length !== 2) {
+        pinchRef.current = null;
+        return;
+      }
+      pinchRef.current = { startDistance: distance(e.touches), startZoom: zoomRef.current };
+    };
+
+    const onTouchMove = (e) => {
+      if (e.touches.length !== 2 || !pinchRef.current) return;
+      // Must run for every 2-finger move, not just the throttled ones below —
+      // skipping a frame here re-enables native zoom for that frame.
+      e.preventDefault();
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const pinch = pinchRef.current;
+        if (!pinch) return;
+        const ratio = distance(e.touches) / pinch.startDistance;
+        zoomTo(pinch.startZoom * ratio, midpoint(e.touches));
+      });
+    };
+
+    const onTouchEnd = (e) => {
+      if (e.touches.length < 2) pinchRef.current = null;
+    };
+
+    // pan-x/pan-y (not "auto", not "manipulation"): single-finger scrolling
+    // stays native in both directions, but pinch-zoom is excluded, so the
+    // browser leaves two-finger gestures on this element for the handlers
+    // above instead of zooming the page.
+    el.style.touchAction = 'pan-x pan-y';
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      cancelAnimationFrame(frame);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [zoomTo, doc]);
 
   useEffect(() => {
     const onKey = (e) => {

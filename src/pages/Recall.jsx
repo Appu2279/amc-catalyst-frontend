@@ -395,7 +395,8 @@ export const Recall = () => {
                   const done = b.answered_count ?? 0;
                   const pct = b.question_count ? Math.round((done / b.question_count) * 100) : 0;
                   const complete = done > 0 && done >= b.question_count;
-                  const hasAccess = sections.recall || b.is_free;
+                  const isFree = Boolean(b.is_free);
+                  const hasAccess = Boolean(sections.recall || isFree);
 
                   return (
                     <div
@@ -408,13 +409,13 @@ export const Recall = () => {
                           <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
                             <CheckCircle2 className="w-3 h-3" /> Completed
                           </span>
+                        ) : isFree ? (
+                          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                            <Sparkles className="w-3 h-3 text-amber-600" /> Free sample
+                          </span>
                         ) : !hasAccess ? (
                           <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                             <Lock className="w-3 h-3 text-slate-400" /> Unlock
-                          </span>
-                        ) : b.is_free ? (
-                          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            <Sparkles className="w-3 h-3 text-amber-600" /> Free sample
                           </span>
                         ) : null}
                       </div>

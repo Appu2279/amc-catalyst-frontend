@@ -346,12 +346,19 @@ export const PdfViewer = ({ data, title }) => {
     const el = containerRef.current;
     const { items, width: layoutWidth } = layoutRef.current;
     if (el && items.length) {
-      const index = Math.min(Math.max(currentRef.current - 1, 0), items.length - 1);
+      const targetY = el.scrollTop + point.offsetY;
+      // The page actually under the anchor point — NOT currentRef's page
+      // number, which tracks a marker near the top of the viewport for the
+      // page counter and disagrees with the anchor point constantly (e.g.
+      // pinching something lower on the page, or on a page other than
+      // whichever one the counter currently names).
+      let index = items.findIndex((it) => targetY <= it.top + it.height);
+      if (index === -1) index = items.length - 1;
       const item = items[index];
       const itemLeft = (layoutWidth - item.width) / 2; // pages are centered — see PageView
       anchorRef.current = {
         index,
-        withinY: (el.scrollTop + point.offsetY - item.top) / (item.height || 1),
+        withinY: (targetY - item.top) / (item.height || 1),
         withinX: (el.scrollLeft + point.offsetX - itemLeft) / (item.width || 1),
         offsetX: point.offsetX,
         offsetY: point.offsetY,
@@ -405,6 +412,9 @@ export const PdfViewer = ({ data, title }) => {
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const pinchRef = useRef(null);
+  // The page stack itself, so a live pinch can be previewed with a plain CSS
+  // transform instead of a real re-render — see the effect below.
+  const stackRef = useRef(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -421,33 +431,66 @@ export const PdfViewer = ({ data, title }) => {
       };
     };
 
-    let frame = 0;
-
     const onTouchStart = (e) => {
       if (e.touches.length !== 2) {
         pinchRef.current = null;
         return;
       }
-      pinchRef.current = { startDistance: distance(e.touches), startZoom: zoomRef.current };
+      const point = midpoint(e.touches);
+      const stack = stackRef.current;
+      if (stack) {
+        // Fixed for the whole gesture, not recomputed per frame: the origin
+        // is where the CSS scale below visually pivots from, and re-pinning
+        // it to the fingers' current position every frame would make the
+        // preview jump instead of track smoothly. It's expressed in content
+        // space (scroll position + offset) because the stack itself never
+        // moves — only its transform changes — so this stays correct even
+        // though the two fingers can drift a little during the gesture.
+        stack.style.transformOrigin = `${el.scrollLeft + point.offsetX}px ${el.scrollTop + point.offsetY}px`;
+        stack.style.willChange = 'transform';
+      }
+      pinchRef.current = { startDistance: distance(e.touches), startZoom: zoomRef.current, point, ratio: 1, frame: 0 };
     };
 
     const onTouchMove = (e) => {
-      if (e.touches.length !== 2 || !pinchRef.current) return;
-      // Must run for every 2-finger move, not just the throttled ones below —
-      // skipping a frame here re-enables native zoom for that frame.
+      const pinch = pinchRef.current;
+      if (e.touches.length !== 2 || !pinch) return;
+      // Must run for every 2-finger move, not just the throttled visual
+      // update below — skipping a frame here re-enables native zoom for it.
       e.preventDefault();
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        const pinch = pinchRef.current;
-        if (!pinch) return;
-        const ratio = distance(e.touches) / pinch.startDistance;
-        zoomTo(pinch.startZoom * ratio, midpoint(e.touches));
+      pinch.ratio = distance(e.touches) / pinch.startDistance;
+      if (pinch.frame) return;
+      pinch.frame = requestAnimationFrame(() => {
+        pinch.frame = 0;
+        // A CSS transform tracks the fingers at full frame rate for free —
+        // no layout, no canvas paint. The expensive part (PDF.js re-rendering
+        // every visible page's canvas at the new resolution, in PageView)
+        // only happens once, in onTouchEnd below, which is what actually
+        // made this sluggish before: a real re-render on every touchmove.
+        const stack = stackRef.current;
+        if (stack) stack.style.transform = `scale(${pinch.ratio})`;
       });
     };
 
+    const settle = () => {
+      const pinch = pinchRef.current;
+      if (!pinch) return;
+      pinchRef.current = null;
+      if (pinch.frame) cancelAnimationFrame(pinch.frame);
+      const stack = stackRef.current;
+      if (stack) {
+        stack.style.transform = '';
+        stack.style.transformOrigin = '';
+        stack.style.willChange = '';
+      }
+      // The one real re-render for this gesture, anchored to the same point
+      // the live preview was scaling around — so nothing jumps, it just goes
+      // from a scaled preview to a freshly painted, sharp page.
+      zoomTo(pinch.startZoom * pinch.ratio, pinch.point);
+    };
+
     const onTouchEnd = (e) => {
-      if (e.touches.length < 2) pinchRef.current = null;
+      if (e.touches.length < 2) settle();
     };
 
     // pan-x/pan-y (not "auto", not "manipulation"): single-finger scrolling
@@ -460,7 +503,7 @@ export const PdfViewer = ({ data, title }) => {
     el.addEventListener('touchend', onTouchEnd);
     el.addEventListener('touchcancel', onTouchEnd);
     return () => {
-      cancelAnimationFrame(frame);
+      if (pinchRef.current?.frame) cancelAnimationFrame(pinchRef.current.frame);
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);
@@ -555,7 +598,7 @@ export const PdfViewer = ({ data, title }) => {
             <p className="text-xs text-slate-400">Loading note…</p>
           </div>
         ) : (
-          <div className="relative" style={{ height: layout.height, width: layout.width }}>
+          <div ref={stackRef} className="relative" style={{ height: layout.height, width: layout.width }}>
             {layout.items.map((item, i) =>
               i >= range.start && i <= range.end ? (
                 <PageView

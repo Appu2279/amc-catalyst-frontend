@@ -109,6 +109,11 @@ const PreviewImage = ({ src, className, onClick }) => {
   );
 };
 
+// A question the parser couldn't find an answer for imports with every
+// option's is_correct false — that's the only signal there is, since the
+// question itself is otherwise a normal, complete row.
+const hasCorrectAnswer = (q) => (q.options ?? []).some((o) => o.is_correct);
+
 // ── Question view card ────────────────────────────────────────────────────────
 const QuestionView = ({ q, idx, onEdit, onExpand, onRemove }) => (
   <>
@@ -160,6 +165,7 @@ const QuestionView = ({ q, idx, onEdit, onExpand, onRemove }) => (
       {q.topic?.name   && <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">{q.topic.name}</span>}
       <DiffBadge d={q.difficulty} />
       {!q.subject_id && <span className="text-[10px] px-2 py-0.5 bg-orange-50 text-orange-500 rounded-full">⚠ no subject</span>}
+      {!hasCorrectAnswer(q) && <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-500 rounded-full">⚠ no answer</span>}
     </div>
   </>
 );
@@ -612,6 +618,7 @@ const PreviewPanel = ({ batchId, onClose, onApprove, onChange }) => {
   // The question queued for removal from the batch — not for deletion.
   const [removeTarget,   setRemoveTarget]   = useState(null);
   const [pickerOpen,     setPickerOpen]     = useState(false);
+  const [answerFilter,   setAnswerFilter]   = useState('all'); // 'all' | 'no_answer'
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -749,6 +756,11 @@ const PreviewPanel = ({ batchId, onClose, onApprove, onChange }) => {
   const failedCount   = data?.failed_questions ?? 0;
   const failedDetails = data?.import_logs?.failed_details ?? [];
 
+  const noAnswerCount   = questions.filter((q) => !hasCorrectAnswer(q)).length;
+  const visibleQuestions = answerFilter === 'no_answer'
+    ? questions.filter((q) => !hasCorrectAnswer(q))
+    : questions;
+
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-black/50" onClick={editingId ? undefined : onClose} />
@@ -794,6 +806,19 @@ const PreviewPanel = ({ batchId, onClose, onApprove, onChange }) => {
                     <AlertCircle className="w-4 h-4" /> {failedCount} failed
                   </span>
                 )}
+                {noAnswerCount > 0 && (
+                  <button
+                    onClick={() => setAnswerFilter((f) => (f === 'no_answer' ? 'all' : 'no_answer'))}
+                    title={answerFilter === 'no_answer' ? 'Showing only questions with no answer — click to show all' : 'Show only questions with no answer'}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                      answerFilter === 'no_answer'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-red-50 text-red-600 hover:bg-red-100'
+                    }`}
+                  >
+                    <AlertCircle className="w-3.5 h-3.5" /> {noAnswerCount} no answer
+                  </button>
+                )}
                 <span className="ml-auto text-[11px] text-slate-400 italic hidden lg:block">
                   <Pencil className="inline w-3 h-3" /> edit · <Unlink className="inline w-3 h-3" /> remove from batch
                 </span>
@@ -820,8 +845,15 @@ const PreviewPanel = ({ batchId, onClose, onApprove, onChange }) => {
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {questions.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No questions found for this batch.</p>
+              ) : visibleQuestions.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">
+                  Every question in this batch has an answer.{' '}
+                  <button onClick={() => setAnswerFilter('all')} className="text-brand-blue hover:underline">
+                    Show all
+                  </button>
+                </p>
               ) : (
-                questions.map((q, i) => {
+                visibleQuestions.map((q, i) => {
                   const isEditing = editingId === q.id;
                   return (
                     <div

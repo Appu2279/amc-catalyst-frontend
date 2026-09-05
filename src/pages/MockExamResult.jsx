@@ -2,7 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { getAttemptResult } from '@/api/userService';
-import { Check, X, Minus, Clock, Trophy, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { ProtectedImage } from '@/components/ProtectedImage';
+import { Lightbox } from '@/components/ui/Lightbox';
+import { Check, X, Minus, Clock, Trophy, RotateCcw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
+
+// Renders explanation text, breaking a bullet-joined string into a list.
+const BULLET_RE = /[•‣⁃·▪▫●○■□▸►∙]+/g;
+const ExplanationText = ({ text, className = '' }) => {
+  if (!text) return null;
+  const parts = text.split(BULLET_RE).map((s) => s.trim()).filter(Boolean);
+  if (parts.length <= 1) return <p className={`leading-relaxed ${className}`}>{text.trim()}</p>;
+  return (
+    <ul className={`space-y-1 leading-relaxed ${className}`}>
+      {parts.map((p, i) => (
+        <li key={i} className="flex gap-2">
+          <span className="mt-1.5 w-1 h-1 rounded-full bg-current opacity-50 shrink-0" />
+          <span>{p}</span>
+        </li>
+      ))}
+    </ul>
+  );
+};
 
 const fmtTime = (s) => {
   if (!s) return '—';
@@ -17,9 +37,10 @@ const fmtTime = (s) => {
 export const MockExamResult = () => {
   const { testId, attemptId } = useParams();
   const navigate = useNavigate();
-  const [loading, setLoading]     = useState(true);
-  const [result, setResult]       = useState(null);
-  const [expandedQ, setExpandedQ] = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [result, setResult]         = useState(null);
+  const [expandedQ, setExpandedQ]   = useState(null);
+  const [lightboxSrc, setLightboxSrc] = useState(null);
 
   useEffect(() => {
     getAttemptResult(attemptId)
@@ -48,6 +69,7 @@ export const MockExamResult = () => {
 
   return (
     <DashboardLayout active="mock-exam">
+      <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       <div className="min-h-screen bg-slate-50 py-6 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
 
@@ -146,28 +168,71 @@ export const MockExamResult = () => {
 
                     {isExpanded && (
                       <div className="px-6 pb-5 space-y-2">
+                        {/* Full question stem */}
+                        <p className="text-base text-slate-800 leading-relaxed whitespace-pre-line mb-4">
+                          {aq.question?.question_text}
+                        </p>
+
+                        {(() => {
+                          const qImages = aq.question?.question_images?.length
+                            ? aq.question.question_images
+                            : aq.question?.question_image ? [aq.question.question_image] : [];
+                          return qImages.length > 0 && (
+                            <div className="mb-3 flex flex-col items-center gap-2">
+                              {qImages.map((src, k) => (
+                                <ProtectedImage
+                                  key={k}
+                                  src={src}
+                                  alt={`Question ${i + 1} image`}
+                                  className="max-w-full max-h-72 object-contain rounded-xl border border-slate-200 bg-slate-50"
+                                  onClick={setLightboxSrc}
+                                />
+                              ))}
+                            </div>
+                          );
+                        })()}
+
                         {allOpts.map(opt => {
                           const isUserPick  = opt.id === userAnswer?.selected_option_id;
                           const isCorrectOp = opt.is_correct;
-                          let cls = 'border-slate-100 bg-slate-50 text-slate-600';
-                          if (isCorrectOp)                    cls = 'border-green-200 bg-green-50 text-green-800';
-                          else if (isUserPick && !isCorrectOp) cls = 'border-red-200 bg-red-50 text-red-700';
+                          let cls = 'border-slate-100 bg-slate-50';
+                          let keyCls = 'text-slate-500';
+                          if (isCorrectOp)                    { cls = 'border-green-200 bg-green-50';  keyCls = 'text-green-700'; }
+                          else if (isUserPick && !isCorrectOp) { cls = 'border-red-200 bg-red-50';     keyCls = 'text-red-700'; }
 
                           return (
-                            <div key={opt.id} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm ${cls}`}>
-                              <span className="font-semibold shrink-0">{opt.option_key}.</span>
-                              <span className="flex-1">{opt.option_text}</span>
-                              {isCorrectOp  && <Check className="w-4 h-4 text-green-600 shrink-0" />}
-                              {isUserPick && !isCorrectOp && <X className="w-4 h-4 text-red-500 shrink-0" />}
+                            <div key={opt.id} className={`px-4 py-3 rounded-xl border text-base ${cls}`}>
+                              <div className="flex items-start gap-3">
+                                <span className={`font-bold shrink-0 ${keyCls}`}>{opt.option_key}.</span>
+                                <span className={`flex-1 font-medium ${isCorrectOp ? 'text-green-800' : isUserPick ? 'text-red-700' : 'text-slate-600'}`}>
+                                  {opt.option_text}
+                                </span>
+                                {isCorrectOp  && <Check className="w-4 h-4 text-green-600 shrink-0 mt-1" />}
+                                {isUserPick && !isCorrectOp && <X className="w-4 h-4 text-red-500 shrink-0 mt-1" />}
+                              </div>
+                              {opt.option_image && (
+                                <ProtectedImage
+                                  src={opt.option_image}
+                                  alt={`Option ${opt.option_key} image`}
+                                  className="mt-2 max-w-full max-h-48 object-contain rounded-lg border border-slate-200 bg-white"
+                                  onClick={setLightboxSrc}
+                                />
+                              )}
+                              {opt.explanation && (
+                                <ExplanationText
+                                  text={opt.explanation}
+                                  className={`mt-2 ml-6 text-sm ${isCorrectOp ? 'text-green-700' : isUserPick ? 'text-red-600' : 'text-slate-600'}`}
+                                />
+                              )}
                             </div>
                           );
                         })}
 
-                        {/* Explanation */}
-                        {(aq.question?.explanation || correctOpt?.explanation) && (
-                          <div className="mt-2 bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 leading-relaxed">
-                            <span className="font-semibold">Explanation: </span>
-                            {aq.question?.explanation ?? correctOpt?.explanation}
+                        {/* Question-level note (take-home points / overall explanation) */}
+                        {aq.question?.explanation && (
+                          <div className="mt-2 flex gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-sm text-amber-900">
+                            <Lightbulb className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                            <ExplanationText text={aq.question.explanation} className="font-semibold" />
                           </div>
                         )}
                       </div>

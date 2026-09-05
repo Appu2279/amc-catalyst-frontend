@@ -238,7 +238,7 @@ export const MockExamSession = () => {
                 </div>
 
                 {/* Question text */}
-                <h2 className="text-lg font-semibold text-slate-900 mb-6 leading-relaxed">
+                <h2 className="text-xl font-semibold text-slate-900 mb-6 leading-relaxed whitespace-pre-line">
                   {currentQ?.question_text}
                 </h2>
 
@@ -273,7 +273,7 @@ export const MockExamSession = () => {
                         }`}>
                           {opt.option_key}
                         </span>
-                        <span className="text-slate-800 font-medium flex-1">{opt.option_text}</span>
+                        <span className="text-base text-slate-800 font-medium flex-1 leading-snug">{opt.option_text}</span>
                       </button>
                     );
                   })}

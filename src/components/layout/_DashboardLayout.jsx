@@ -9,7 +9,6 @@ import {
   NotebookPen,
   PanelLeftClose,
   PanelLeftOpen,
-  FileQuestion,
   Sparkles,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -18,7 +17,7 @@ import { UserAvatar } from '@/components/UserAvatar';
 const NAV = [
   { key: 'dashboard', to: '/dashboard', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
   { key: 'notes', to: '/notes', label: 'Notes', short: 'Notes', icon: NotebookPen },
-  { key: 'qbank', to: '/qbank', label: 'QBank', short: 'QBank', icon: FileQuestion },
+  // QBank hidden until there are questions in it. The page + route still work.
   { key: 'recall', to: '/recall', label: 'Recall', short: 'Recall', icon: UndoDotIcon },
   { key: 'mock-exam', to: '/mock-exam', label: 'Mock Exams', short: 'Exams', icon: Trophy },
 ];

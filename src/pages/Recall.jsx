@@ -36,10 +36,10 @@ const ExplanationText = ({ text, className = '' }) => {
 
   const parts = text.split(BULLET_RE).map(s => s.trim()).filter(Boolean);
   if (parts.length <= 1) {
-    return <p className={`text-xs leading-relaxed ${className}`}>{text.trim()}</p>;
+    return <p className={`text-sm leading-relaxed ${className}`}>{text.trim()}</p>;
   }
   return (
-    <ul className={`text-xs leading-relaxed space-y-1 ${className}`}>
+    <ul className={`text-sm leading-relaxed space-y-1.5 ${className}`}>
       {parts.map((part, i) => (
         <li key={i} className="flex gap-2">
           <span className="mt-1 w-1.5 h-1.5 rounded-full bg-current opacity-50 shrink-0" />
@@ -630,7 +630,7 @@ export const Recall = () => {
                 <div className="px-5 py-4">
 
                   {/* Question text */}
-                  <p className="text-base font-semibold text-slate-900 leading-snug mb-4">
+                  <p className="text-lg font-semibold text-slate-900 leading-relaxed mb-4">
                     {q.question_text}
                   </p>
 
@@ -651,18 +651,18 @@ export const Recall = () => {
 
                   {/* Hint before selection */}
                   {!checked && !checking && (
-                    <p className="text-[11px] text-slate-400 mb-3 italic">
+                    <p className="text-xs text-slate-400 mb-3 italic">
                       Select an option — explanations will be revealed instantly
                     </p>
                   )}
 
                   {/* Result banner */}
                   {checked && (
-                    <div className={`flex items-center gap-2.5 px-3 py-2 rounded-xl mb-3 ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl mb-3 ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isCorrect ? 'bg-green-500' : 'bg-red-500'} text-white`}>
-                        {isCorrect ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                        {isCorrect ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
                       </div>
-                      <p className={`text-sm font-semibold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                      <p className={`text-base font-bold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
                         {isCorrect ? 'Correct!' : `Incorrect — correct answer is ${correctOpt?.option_key}`}
                       </p>
                     </div>
@@ -716,7 +716,7 @@ export const Recall = () => {
                               : opt.option_key
                             }
                           </span>
-                          <span className={`text-sm font-medium flex-1 leading-snug ${checked && !isThisCorrect && !isThisSelected ? 'text-slate-500' : 'text-slate-800'}`}>
+                          <span className={`text-base font-medium flex-1 leading-snug ${checked && !isThisCorrect && !isThisSelected ? 'text-slate-500' : 'text-slate-800'}`}>
                             {opt.option_text}
                           </span>
                           {checked && isThisCorrect                    && <Check className="w-4 h-4 text-green-600 shrink-0" />}
@@ -729,9 +729,9 @@ export const Recall = () => {
                   {/* ── Explanations panel — all options listed together ──────── */}
                   {checked && checkResult && (checkResult.options ?? []).some(o => o.explanation) && (
                     <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border-b border-slate-200">
-                        <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Explanations</p>
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                        <Lightbulb className="w-4 h-4 text-amber-500 shrink-0" />
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Explanations</p>
                       </div>
                       <div className="divide-y divide-slate-100">
                         {[...(checkResult.options ?? [])].sort((a, b) => a.option_key.localeCompare(b.option_key)).map(opt => {
@@ -741,13 +741,13 @@ export const Recall = () => {
                           if (isThisCorrect)       badgeCls = 'bg-green-500 text-white';
                           else if (isThisSelected) badgeCls = 'bg-red-500 text-white';
                           return (
-                            <div key={opt.id} className="flex gap-3 px-4 py-3">
-                              <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 ${badgeCls}`}>
+                            <div key={opt.id} className="flex gap-3 px-4 py-3.5">
+                              <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${badgeCls}`}>
                                 {opt.option_key}
                               </span>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-semibold mb-1 ${
-                                  isThisCorrect ? 'text-green-700' : isThisSelected ? 'text-red-700' : 'text-slate-600'
+                                <p className={`text-sm font-bold mb-1 ${
+                                  isThisCorrect ? 'text-green-700' : isThisSelected ? 'text-red-700' : 'text-slate-700'
                                 }`}>
                                   {opt.option_text}
                                 </p>
@@ -760,8 +760,8 @@ export const Recall = () => {
                                   />
                                 )}
                                 {opt.explanation
-                                  ? <ExplanationText text={opt.explanation} className="text-slate-500" />
-                                  : <span className="text-xs text-slate-300 italic">No explanation provided.</span>
+                                  ? <ExplanationText text={opt.explanation} className={isThisCorrect ? 'text-slate-700' : 'text-slate-600'} />
+                                  : <span className="text-sm text-slate-300 italic">No explanation provided.</span>
                                 }
                               </div>
                             </div>
@@ -771,10 +771,10 @@ export const Recall = () => {
                     </div>
                   )}
 
-                  {/* Question-level note: answer images + explanation */}
+                  {/* Question-level note: answer images + key take-home points */}
                   {checked && (checkResult?.answer_images?.length > 0 || checkResult?.explanation) && (
-                    <div className="flex gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl mb-4">
-                      <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div className="flex gap-2.5 px-4 py-3.5 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+                      <Lightbulb className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0 space-y-2">
                         {(checkResult.answer_images ?? []).map((src, i) => (
                           <div key={i} className="flex justify-center">
@@ -787,7 +787,7 @@ export const Recall = () => {
                           </div>
                         ))}
                         {checkResult.explanation && (
-                          <ExplanationText text={checkResult.explanation} className="text-amber-800" />
+                          <ExplanationText text={checkResult.explanation} className="text-amber-900 font-semibold" />
                         )}
                       </div>
                     </div>

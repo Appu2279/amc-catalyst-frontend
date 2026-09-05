@@ -26,6 +26,7 @@ import { Recall } from '@/pages/Recall';
 import { MockExam } from '@/pages/MockExam';
 import { MockExamSession } from '@/pages/MockExamSession';
 import { MockExamResult } from '@/pages/MockExamResult';
+import { Profile } from '@/pages/Profile';
 
 // Admin pages
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
@@ -101,6 +102,7 @@ export const App = () => (
         {/* User dashboard */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/qbank" element={<QBank />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/recall" element={<Recall />} />

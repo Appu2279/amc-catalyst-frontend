@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { UserAvatar } from '@/components/UserAvatar';
 
 const NAV = [
   { key: 'dashboard', to: '/dashboard', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
@@ -144,12 +145,19 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
             </button>
-            <div className="flex items-center space-x-3 border-l border-slate-200 pl-3 sm:pl-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-violet to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                {user?.fullName?.charAt(0) ?? 'D'}
-              </div>
-              <span className="text-xs sm:text-sm font-bold text-slate-800 hidden sm:block">{user?.name}</span>
-            </div>
+            <Link
+              to="/profile"
+              title="Edit profile"
+              aria-label="Edit profile"
+              className={`group flex items-center space-x-3 border-l border-slate-200 pl-3 sm:pl-4 rounded-lg py-1 pr-1 sm:pr-2 transition-colors hover:bg-slate-50 ${
+                location.pathname === '/profile' ? 'text-brand-violet' : ''
+              }`}
+            >
+              <UserAvatar className="w-8 h-8 rounded-full shadow-xs ring-2 ring-transparent group-hover:ring-brand-violet/20 transition shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-slate-800 hidden sm:block">
+                {user?.fullName ?? user?.name}
+              </span>
+            </Link>
           </div>
         </header>
 

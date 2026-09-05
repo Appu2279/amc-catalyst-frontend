@@ -4,6 +4,24 @@ export const getUsers    = () => axiosInstance.get("/users");
 export const registerUser = (data) => axiosInstance.post("/auth/register", data);
 export const loginUser    = (data) => axiosInstance.post("/auth/login", data);
 
+// ── This student's own account ────────────────────────────────────────────────
+// getMyProfile returns the fields collected at registration; updateMyProfile
+// takes only the ones that changed. Both are under /api/me, guarded by the token.
+export const getMyProfile    = ()     => axiosInstance.get('/me');
+export const updateMyProfile = (data) => axiosInstance.patch('/me', data);
+
+// Profile picture. Content-Type is nulled so the browser sets the multipart
+// boundary itself — see submitPaymentClaim below for the same trick.
+export const uploadMyAvatar = (file) => {
+  const body = new FormData();
+  body.append('avatar', file);
+  return axiosInstance.post('/me/avatar', body, {
+    headers: { 'Content-Type': null },
+    timeout: 60000,
+  });
+};
+export const deleteMyAvatar = () => axiosInstance.delete('/me/avatar');
+
 // ── Subjects & Topics (public) ────────────────────────────────────────────────
 export const getSubjectsPublic      = ()   => axiosInstance.get('/subjects');
 export const getSubjectTopicsPublic = (id) => axiosInstance.get(`/subjects/${id}/topics`);

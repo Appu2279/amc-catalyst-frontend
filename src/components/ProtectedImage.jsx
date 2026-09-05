@@ -31,8 +31,16 @@ export const ProtectedImage = ({ src, alt = '', className = '', style = {}, onCl
     setBlobUrl(null);
     setErrored(false);
 
-    axiosInstance
-      .get(`/images/proxy?url=${encodeURIComponent(src)}`, { responseType: 'blob' })
+    // A src that is already a backend path (e.g. "/api/images/question?key=…",
+    // written by the import service for S3-hosted question figures) is fetched
+    // straight through the authed axios instance. A full http(s) URL — the
+    // Cloudinary assets recall questions carry — goes through the proxy so the
+    // storage origin never reaches the DOM.
+    const request = src.startsWith('/')
+      ? axiosInstance.get(src.replace(/^\/api(?=\/)/, ''), { responseType: 'blob' })
+      : axiosInstance.get(`/images/proxy?url=${encodeURIComponent(src)}`, { responseType: 'blob' });
+
+    request
       .then(res => {
         objectUrl = URL.createObjectURL(res.data);
         setBlobUrl(objectUrl);

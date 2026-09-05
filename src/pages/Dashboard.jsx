@@ -479,12 +479,11 @@ export const Dashboard = () => {
                   {
                     to: '/qbank',
                     icon: BookOpen,
-                    iconColor: 'text-slate-400',
-                    iconBg: 'bg-slate-100 border border-slate-200',
-                    hoverBg: '',
+                    iconColor: 'text-emerald-600',
+                    iconBg: 'bg-emerald-50 border border-emerald-200',
+                    hoverBg: 'hover:bg-emerald-50/50 hover:border-emerald-200',
                     label: 'QBank (MCQs)',
-                    sub: 'Subject-wise practice',
-                    disabled: true,
+                    sub: 'Subject-wise practice with explanations',
                   },
                 ].map(item => {
                   if (item.disabled) {

@@ -22,6 +22,7 @@ import {
   Unlink, ListPlus, Search, Loader2, Sparkles,
 } from 'lucide-react';
 import { Lightbox } from '@/components/ui/Lightbox';
+import { ProtectedImage } from '@/components/ProtectedImage';
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {
@@ -82,9 +83,21 @@ const DiffBadge = ({ d }) => {
 };
 
 // ── Inline image with error fallback + click-to-expand ───────────────────────
+//
+// A src that begins with "/" is a backend path that needs the auth header
+// (question figures the import service put on S3) — ProtectedImage fetches those
+// through axios. A full URL is a public Cloudinary asset the browser can load
+// straight, which also lets the admin see a genuinely broken link.
 const PreviewImage = ({ src, className, onClick }) => {
   const [broken, setBroken] = useState(false);
   if (!src) return null;
+
+  if (src.startsWith('/')) {
+    // ProtectedImage calls onClick with its resolved blob URL, which is what the
+    // Lightbox needs (it renders a plain <img>).
+    return <ProtectedImage src={src} className={className} onClick={onClick} />;
+  }
+
   if (broken) {
     return (
       <div className={`flex items-center justify-center bg-slate-100 border border-slate-200 rounded-lg text-slate-400 text-xs ${className}`}

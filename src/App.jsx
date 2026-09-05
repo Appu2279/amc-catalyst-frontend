@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AdminRoute } from '@/components/AdminRoute';
+import { captureReferralFromSearch } from '@/lib/referral';
 
 // Public pages
 import { Home } from '@/pages/Home';
@@ -38,6 +39,7 @@ import { AdminMockTestDetail } from '@/pages/admin/AdminMockTestDetail';
 import { AdminCourses } from '@/pages/admin/AdminCourses';
 import { AdminNotes } from '@/pages/admin/AdminNotes';
 import { AdminPaymentClaims } from '@/pages/admin/AdminPaymentClaims';
+import { AdminReferrals } from '@/pages/admin/AdminReferrals';
 import { LegalPage } from '@/pages/LegalPage';
 import { TERMS, PRIVACY } from '@/content/legal';
 
@@ -52,6 +54,13 @@ const PublicLayout = ({ children }) => (
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   React.useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+};
+
+// Stashes a ?ref= code from any URL so it survives until the visitor registers.
+const ReferralCapture = () => {
+  const { search } = useLocation();
+  React.useEffect(() => { captureReferralFromSearch(search); }, [search]);
   return null;
 };
 
@@ -77,6 +86,7 @@ export const App = () => (
     <AuthProvider>
       <NoContextMenu />
       <ScrollToTop />
+      <ReferralCapture />
       <Routes>
         {/* Public */}
         <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
@@ -128,6 +138,7 @@ export const App = () => (
           <Route path="/admin/courses" element={<AdminCourses />} />
           <Route path="/admin/notes" element={<AdminNotes />} />
           <Route path="/admin/payments" element={<AdminPaymentClaims />} />
+          <Route path="/admin/referrals" element={<AdminReferrals />} />
         </Route>
       </Routes>
     </AuthProvider>

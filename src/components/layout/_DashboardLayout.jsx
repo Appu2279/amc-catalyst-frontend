@@ -5,7 +5,6 @@ import {
   UndoDotIcon,
   Trophy,
   LogOut,
-  Bell,
   Search,
   NotebookPen,
   PanelLeftClose,
@@ -141,10 +140,6 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
             </div>
           </div>
           <div className="flex items-center space-x-3 sm:space-x-4">
-            <button className="p-2 text-slate-400 hover:text-slate-600 relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
-            </button>
             <Link
               to="/profile"
               title="Edit profile"

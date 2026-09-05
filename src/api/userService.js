@@ -22,6 +22,9 @@ export const uploadMyAvatar = (file) => {
 };
 export const deleteMyAvatar = () => axiosInstance.delete('/me/avatar');
 
+// This student's own referral code + the current offer (mode + reward amount).
+export const getMyReferral = () => axiosInstance.get('/me/referral');
+
 // ── Subjects & Topics (public) ────────────────────────────────────────────────
 export const getSubjectsPublic      = ()   => axiosInstance.get('/subjects');
 export const getSubjectTopicsPublic = (id) => axiosInstance.get(`/subjects/${id}/topics`);

@@ -4,14 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Mail, Briefcase, Globe, GraduationCap, ChevronDown, Lock,
   Save, Loader2, Camera, Trash2, ShieldCheck, RotateCcw, Check,
-  Crown, CalendarDays, ArrowRight, Sparkles,
+  Crown, CalendarDays, ArrowRight, Sparkles, Gift, Copy, Link2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { useAuth } from '@/context/AuthContext';
 import { useAccess } from '@/hooks/useAccess';
 import { Toast } from '@/components/ui/Toast';
 import {
-  getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar,
+  getMyProfile, updateMyProfile, uploadMyAvatar, deleteMyAvatar, getMyReferral,
 } from '@/api/userService';
 import {
   PROFESSIONAL_ROLES,
@@ -180,6 +180,88 @@ const MembershipCard = () => {
             </div>
           );
         })}
+      </div>
+    </Card>
+  );
+};
+
+const fmtMoney = (amount, currency) => {
+  try {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency', currency: currency || 'INR', maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${currency || 'INR'} ${amount}`;
+  }
+};
+
+const CopyButton = ({ value, label }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked — nothing sensible to do */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:border-brand-violet hover:text-brand-violet transition"
+    >
+      {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+      {copied ? 'Copied' : label}
+    </button>
+  );
+};
+
+const ReferralCard = () => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getMyReferral()
+      .then((res) => setData(res.data))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Nothing to show until it loads; and if an admin has switched the programme
+  // off, hide the section entirely rather than show a code that earns nothing.
+  if (loading) return null;
+  if (!data?.code || data.mode === 'off') return null;
+
+  const link = `${window.location.origin}/?ref=${encodeURIComponent(data.code)}`;
+  const reward = fmtMoney(data.reward_amount, data.currency);
+
+  const offer =
+    data.mode === 'both'
+      ? `When a friend subscribes with your code, you each get ${reward} in credit.`
+      : `Get ${reward} when someone you refer subscribes to a plan.`;
+
+  return (
+    <Card title="Refer a friend" subtitle={offer} icon={Gift}>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 space-y-4">
+        <div>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1.5">Your referral code</p>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-xl sm:text-2xl font-black tracking-wider text-slate-900 tabular-nums">
+              {data.code}
+            </span>
+            <div className="flex items-center gap-2">
+              <CopyButton value={data.code} label="Copy code" />
+              <CopyButton value={link} label="Copy link" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 border-t border-slate-200 pt-3">
+          <Link2 className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+          <p className="text-[11px] font-medium text-slate-500 break-all">{link}</p>
+        </div>
       </div>
     </Card>
   );
@@ -462,6 +544,9 @@ export const Profile = () => {
         {/* ── Membership ────────────────────────────────────────────────────── */}
         <MembershipCard />
 
+        {/* ── Referral ──────────────────────────────────────────────────────── */}
+        <ReferralCard />
+
         {loading ? (
           <div className="space-y-4 animate-pulse">
             {[...Array(6)].map((_, i) => <div key={i} className="h-16 bg-slate-100 rounded-2xl" />)}
@@ -597,9 +682,9 @@ export const Profile = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  className="fixed inset-x-0 bottom-0 md:bottom-4 z-40 px-4 md:pl-64"
+                  className="fixed inset-x-0 bottom-0 md:bottom-4 z-40 px-4 md:pl-64 pointer-events-none"
                 >
-                  <div className="max-w-3xl mx-auto flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-2xl shadow-slate-300/40 px-4 py-3">
+                  <div className="pointer-events-auto max-w-3xl mx-auto flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-2xl shadow-slate-300/40 px-4 py-3">
                     <p className="text-xs font-bold text-slate-500 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                       Unsaved changes

@@ -6,6 +6,7 @@ import {
   Briefcase, Globe, GraduationCap, ChevronDown,
 } from 'lucide-react';
 import { registerUser } from '@/api/userService';
+import { getStoredReferralCode, clearStoredReferralCode } from '@/lib/referral';
 import { Toast } from '@/components/ui/Toast';
 import {
   PROFESSIONAL_ROLES,
@@ -42,6 +43,14 @@ export const Register = () => {
   const navigate = useNavigate();
 
   const location = useLocation();
+
+  // A ?ref= on this URL wins; otherwise fall back to one stashed from an earlier
+  // visit (the partner's link may have landed on the home page days ago).
+  const [referralCode] = useState(() => {
+    const fromUrl = new URLSearchParams(location.search).get('ref');
+    const code = (fromUrl || getStoredReferralCode() || '').trim().toUpperCase();
+    return code || null;
+  });
 
   const showToast = (type, message) => setToast({ type, message });
 
@@ -82,7 +91,11 @@ export const Register = () => {
         professionalRole,
         country,
         graduationYear: Number(graduationYear),
+        ...(referralCode ? { referralCode } : {}),
       });
+      // Attribution is now recorded server-side (or the code was invalid and
+      // ignored) — either way it should not follow the next person on this device.
+      clearStoredReferralCode();
       // Straight to sign-in: the account exists, so the next thing to do is use
       // it. replace, because the form is done and Back should not return to a
       // filled-in copy of it.
@@ -171,6 +184,15 @@ export const Register = () => {
             <p className="text-slate-400 text-sm mt-2 font-medium">
               Reserve your place before launch — we will open your dashboard as soon as we go live.
             </p>
+
+            {referralCode && (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-brand-violet/20 bg-brand-violet/5 px-3 py-2">
+                <Sparkles className="w-4 h-4 text-brand-violet" />
+                <span className="text-xs font-bold text-brand-dark">
+                  Referred by <span className="text-brand-violet">{referralCode}</span>
+                </span>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">

@@ -136,3 +136,35 @@ export const rejectPaymentClaim = (id, note) =>
  */
 export const getPaymentClaimScreenshot = (id) =>
   axiosInstance.get(`/payment-claims/admin/${id}/screenshot`, { responseType: 'blob' });
+
+// ── Referrals ─────────────────────────────────────────────────────────────────
+//
+// Users just see their own code (GET /me/referral). Everything about who
+// referred whom, what is owed and the programme switch lives here, admin-only.
+
+export const getReferralOverview = () => axiosInstance.get('/admin/referrals/overview');
+
+// mode: 'both' | 'referrer_only' | 'off'
+export const updateReferralConfig = (data) =>
+  axiosInstance.put('/admin/referrals/config', data);
+
+// status: '' | 'joined' | 'qualified' | 'rewarded'
+export const getReferrals = (params) =>
+  axiosInstance.get('/admin/referrals', { params });
+
+// type: '' | 'user' | 'partner'
+export const getReferralCodes = (type) =>
+  axiosInstance.get('/admin/referrals/codes', { params: type ? { type } : {} });
+
+export const createPartnerReferralCode = (data) =>
+  axiosInstance.post('/admin/referrals/codes', data);
+
+export const updateReferralCode = (id, data) =>
+  axiosInstance.patch(`/admin/referrals/codes/${id}`, data);
+
+// status: '' | 'pending' | 'paid' | 'cancelled'
+export const getReferralRewards = (params) =>
+  axiosInstance.get('/admin/referrals/rewards', { params });
+
+export const markReferralRewardPaid = (id, note) =>
+  axiosInstance.post(`/admin/referrals/rewards/${id}/pay`, { note });

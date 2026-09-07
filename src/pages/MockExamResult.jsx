@@ -169,7 +169,7 @@ export const MockExamResult = () => {
                     {isExpanded && (
                       <div className="px-6 pb-5 space-y-2">
                         {/* Full question stem */}
-                        <p className="text-base text-slate-800 leading-relaxed whitespace-pre-line mb-4">
+                        <p className="text-[15px] text-slate-800 leading-relaxed whitespace-pre-line mb-4">
                           {aq.question?.question_text}
                         </p>
 
@@ -201,7 +201,7 @@ export const MockExamResult = () => {
                           else if (isUserPick && !isCorrectOp) { cls = 'border-red-200 bg-red-50';     keyCls = 'text-red-700'; }
 
                           return (
-                            <div key={opt.id} className={`px-4 py-3 rounded-xl border text-base ${cls}`}>
+                            <div key={opt.id} className={`px-4 py-3 rounded-xl border text-[15px] ${cls}`}>
                               <div className="flex items-start gap-3">
                                 <span className={`font-bold shrink-0 ${keyCls}`}>{opt.option_key}.</span>
                                 <span className={`flex-1 font-medium ${isCorrectOp ? 'text-green-800' : isUserPick ? 'text-red-700' : 'text-slate-600'}`}>

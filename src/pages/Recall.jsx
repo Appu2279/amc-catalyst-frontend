@@ -630,7 +630,7 @@ export const Recall = () => {
                 <div className="px-5 py-4">
 
                   {/* Question text */}
-                  <p className="text-lg font-semibold text-slate-900 leading-relaxed mb-4">
+                  <p className="text-[17px] font-semibold text-slate-900 leading-relaxed mb-4">
                     {q.question_text}
                   </p>
 
@@ -716,7 +716,7 @@ export const Recall = () => {
                               : opt.option_key
                             }
                           </span>
-                          <span className={`text-base font-medium flex-1 leading-snug ${checked && !isThisCorrect && !isThisSelected ? 'text-slate-500' : 'text-slate-800'}`}>
+                          <span className={`text-[15px] font-medium flex-1 leading-snug ${checked && !isThisCorrect && !isThisSelected ? 'text-slate-500' : 'text-slate-800'}`}>
                             {opt.option_text}
                           </span>
                           {checked && isThisCorrect                    && <Check className="w-4 h-4 text-green-600 shrink-0" />}

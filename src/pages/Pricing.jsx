@@ -199,9 +199,11 @@ export const Pricing = () => {
             Plans are unavailable right now. Please try again shortly.
           </p>
         ) : (
-          <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-16 flex flex-wrap justify-center gap-6">
             {plans.map((course, idx) => (
-              <PlanCard key={course.id} course={course} index={idx} />
+              <div key={course.id} className="w-full md:w-[calc(50%-0.75rem)] xl:w-[calc(25%-1.125rem)]">
+                <PlanCard course={course} index={idx} />
+              </div>
             ))}
           </div>
         )}

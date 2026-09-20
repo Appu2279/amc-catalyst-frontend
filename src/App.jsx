@@ -28,6 +28,7 @@ import { MockExam } from '@/pages/MockExam';
 import { MockExamSession } from '@/pages/MockExamSession';
 import { MockExamResult } from '@/pages/MockExamResult';
 import { Profile } from '@/pages/Profile';
+import { RegistrationPathway } from '@/pages/RegistrationPathway';
 
 // Admin pages
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
@@ -117,6 +118,7 @@ export const App = () => (
           <Route path="/notes" element={<Notes />} />
           <Route path="/recall" element={<Recall />} />
           <Route path="/mock-exam" element={<MockExam />} />
+          <Route path="/registration-pathway" element={<RegistrationPathway />} />
           <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
           <Route path="/mock-exam/:testId/result/:attemptId"  element={<MockExamResult />} />
 

@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Sparkles,
+  Workflow,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -20,6 +21,7 @@ const NAV = [
   // QBank hidden until there are questions in it. The page + route still work.
   { key: 'recall', to: '/recall', label: 'Recall', short: 'Recall', icon: UndoDotIcon },
   { key: 'mock-exam', to: '/mock-exam', label: 'Mock Exams', short: 'Exams', icon: Trophy },
+  { key: 'registration', to: '/registration-pathway', label: 'Registration', short: 'Pathway', icon: Workflow },
 ];
 
 export const DashboardLayout = ({ children, active, collapseNav = false }) => {

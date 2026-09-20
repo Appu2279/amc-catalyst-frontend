@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, BookOpen, Check, ClipboardList, Globe, HelpCircle, MessageSquareText, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getCourses } from '../api/courseService';
+import { getCourses, getPricingConfig } from '../api/courseService';
 import { useAuth } from '@/context/AuthContext';
 import { AMCNotesIndex } from '@/components/AMCNotesIndex';
 
@@ -29,6 +29,8 @@ const NOTES = [
 ];
 
 const inr = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
+const aud = (value) =>
+  new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(value);
 
 // Accent per card position, following the client's layout: the two middle tiers
 // carry the emphasis, the standalone plan sits quieter on the end.
@@ -38,7 +40,7 @@ const ACCENTS = {
   'STANDALONE PLAN': { ring: 'border-slate-200',    chip: 'bg-brand-violet/10 text-brand-violet' },
 };
 
-const PlanCard = ({ course, index }) => {
+const PlanCard = ({ course, index, audToInrRate }) => {
   const { isAuthenticated } = useAuth();
 
   // Signed in: straight to checkout. Signed out: through login, which sends
@@ -50,6 +52,15 @@ const PlanCard = ({ course, index }) => {
     : `/login?next=${encodeURIComponent(checkout)}`;
 
   const pricing = course.CoursePricings?.[0];
+
+  // AUD is the currency courses are meant to be priced in going forward — see
+  // coursePricing.model.js. A course still on the legacy INR-only fields (no
+  // AUD price set) falls back to the plain INR display exactly as before.
+  const audDiscounted = pricing?.discounted_price_aud ?? pricing?.actual_price_aud;
+  const audRegular = pricing?.actual_price_aud;
+  const hasAud = audDiscounted != null && audToInrRate != null;
+  const inrEquivalent = hasAud ? Math.round(audDiscounted * audToInrRate) : null;
+
   const accent = ACCENTS[course.badge] ?? { ring: 'border-slate-200', chip: '' };
   const isFeatured = course.badge === 'MOST POPULAR' || course.badge === 'BEST VALUE';
 
@@ -83,15 +94,32 @@ const PlanCard = ({ course, index }) => {
 
       <div className="mt-5 text-center">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Early Bird</p>
-        <p className="text-4xl font-black tracking-tighter text-brand-dark">
-          {inr(pricing?.discounted_price)}
-        </p>
-        {pricing?.actual_price !== pricing?.discounted_price && (
+        {hasAud ? (
           <>
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
-              Regular Price
+            <p className="text-4xl font-black tracking-tighter text-brand-dark">{aud(audDiscounted)}</p>
+            <p className="mt-1 text-sm font-bold text-slate-500">≈ {inr(inrEquivalent)}</p>
+            {audRegular !== audDiscounted && (
+              <>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                  Regular Price
+                </p>
+                <p className="text-sm font-bold text-slate-400 line-through">{aud(audRegular)}</p>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="text-4xl font-black tracking-tighter text-brand-dark">
+              {inr(pricing?.discounted_price)}
             </p>
-            <p className="text-sm font-bold text-slate-400 line-through">{inr(pricing?.actual_price)}</p>
+            {pricing?.actual_price !== pricing?.discounted_price && (
+              <>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                  Regular Price
+                </p>
+                <p className="text-sm font-bold text-slate-400 line-through">{inr(pricing?.actual_price)}</p>
+              </>
+            )}
           </>
         )}
       </div>
@@ -162,6 +190,10 @@ const PlanCard = ({ course, index }) => {
 export const Pricing = () => {
   const [plans, setPlans] = useState([]);
   const [error, setError] = useState(false);
+  // null until loaded — PlanCard treats that as "no AUD conversion available
+  // yet" and falls back to the plain INR price rather than showing a ≈ line
+  // computed from a rate that hasn't arrived.
+  const [audToInrRate, setAudToInrRate] = useState(null);
 
   useEffect(() => {
     getCourses()
@@ -170,6 +202,10 @@ export const Pricing = () => {
         console.error('Error fetching plans:', err);
         setError(true);
       });
+
+    getPricingConfig()
+      .then((res) => setAudToInrRate(Number(res.data?.aud_to_inr_rate)))
+      .catch(() => {}); // AUD-priced plans just fall back to INR-only display
   }, []);
 
   return (
@@ -202,7 +238,7 @@ export const Pricing = () => {
           <div className="mt-16 flex flex-wrap justify-center gap-6">
             {plans.map((course, idx) => (
               <div key={course.id} className="w-full md:w-[calc(50%-0.75rem)] xl:w-[calc(25%-1.125rem)]">
-                <PlanCard course={course} index={idx} />
+                <PlanCard course={course} index={idx} audToInrRate={audToInrRate} />
               </div>
             ))}
           </div>

@@ -68,6 +68,12 @@ export const createCourse = (data) => axiosInstance.post('/courses', data);
 export const updateCourse = (id, data) => axiosInstance.put(`/courses/${id}`, data);
 export const deleteCourse = (id) => axiosInstance.delete(`/courses/${id}`);
 
+// The AUD→INR rate every AUD-priced course is converted at, live, on both
+// the Pricing page and at checkout. One rate for the whole site.
+export const getPricingConfig = () => axiosInstance.get('/pricing-config');
+export const updatePricingConfig = (aud_to_inr_rate) =>
+  axiosInstance.put('/pricing-config', { aud_to_inr_rate });
+
 // Features (shared pool)
 export const getFeatures = () => axiosInstance.get('/features');
 export const createFeature = (data) => axiosInstance.post('/features', data);
@@ -103,6 +109,16 @@ export const uploadNote = (formData, onUploadProgress) =>
 
 export const updateNoteAdmin = (id, data) => axiosInstance.put(`/notes/admin/${id}`, data);
 export const deleteNoteAdmin = (id) => axiosInstance.delete(`/notes/admin/${id}`);
+
+// Same Content-Type: null reasoning as uploadNote above.
+export const uploadNoteCoverImage = (id, formData, onUploadProgress) =>
+  axiosInstance.post(`/notes/admin/${id}/cover`, formData, {
+    headers: { 'Content-Type': null },
+    timeout: 60000,
+    onUploadProgress,
+  });
+
+export const deleteNoteCoverImage = (id) => axiosInstance.delete(`/notes/admin/${id}/cover`);
 
 // ── Payment claims ────────────────────────────────────────────────────────────
 //

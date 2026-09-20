@@ -5,9 +5,12 @@ import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import {
   getCourses, createCourse, updateCourse, deleteCourse,
   getFeatures, createFeature, getBenefits, createBenefit,
+  getPricingConfig, updatePricingConfig,
 } from '@/api/adminService';
 import { cn } from '@/utils/cn';
-import { CheckCircle, Pencil, Plus, Star, Tag, Trash2, X } from 'lucide-react';
+import { CheckCircle, DollarSign, Pencil, Plus, Star, Tag, Trash2, X } from 'lucide-react';
+
+const inrFromAud = (aud, rate) => (aud != null && rate ? Math.round(Number(aud) * rate) : null);
 
 // ── Shared form atoms ─────────────────────────────────────────────────────────
 const FInput = ({ label, ...props }) => (
@@ -178,12 +181,20 @@ const MultiSelectCreate = ({ label, allOptions, selectedIds, onChange, onCreate 
 };
 
 // ── Empty form ────────────────────────────────────────────────────────────────
+const EMPTY_PRICING_TIER = {
+  actual_price: '',
+  discounted_price: '',
+  actual_price_aud: '',
+  discounted_price_aud: '',
+  is_early_bird: false,
+};
+
 const EMPTY_COURSE = {
   title: '',
   description: '',
   duration_months: 1,
   is_active: true,
-  pricing: [{ actual_price: '', discounted_price: '', is_early_bird: false }],
+  pricing: [{ ...EMPTY_PRICING_TIER }],
   feature_ids: [],
   benefit_ids: [],
 };
@@ -201,7 +212,7 @@ const CourseForm = ({ form, setForm, allFeatures, allBenefits, onCreateFeature, 
   const addPricing = () =>
     setForm((p) => ({
       ...p,
-      pricing: [...p.pricing, { actual_price: '', discounted_price: '', is_early_bird: false }],
+      pricing: [...p.pricing, { ...EMPTY_PRICING_TIER }],
     }));
   const removePricing = (i) =>
     setForm((p) => ({ ...p, pricing: p.pricing.filter((_, idx) => idx !== i) }));
@@ -266,22 +277,49 @@ const CourseForm = ({ form, setForm, allFeatures, allBenefits, onCreateFeature, 
             </div>
             <div className="grid grid-cols-2 gap-3">
               <FInput
-                label="Actual Price (Rs)"
+                label="Actual Price (AUD)"
                 type="number"
                 min={0}
-                value={p.actual_price}
-                onChange={(e) => updatePricing(i, 'actual_price', e.target.value)}
-                placeholder="5499"
+                value={p.actual_price_aud}
+                onChange={(e) => updatePricing(i, 'actual_price_aud', e.target.value)}
+                placeholder="300"
               />
               <FInput
-                label="Discounted Price (Rs)"
+                label="Discounted Price (AUD)"
                 type="number"
                 min={0}
-                value={p.discounted_price}
-                onChange={(e) => updatePricing(i, 'discounted_price', e.target.value)}
-                placeholder="4999"
+                value={p.discounted_price_aud}
+                onChange={(e) => updatePricing(i, 'discounted_price_aud', e.target.value)}
+                placeholder="270"
               />
             </div>
+            <p className="text-[11px] text-slate-400 -mt-1">
+              Shown on Pricing as A$ with an INR estimate at the current exchange rate (below),
+              and charged in INR at checkout — no need to also enter a rupee price.
+            </p>
+            <details className="text-xs">
+              <summary className="cursor-pointer text-slate-400 hover:text-slate-600">
+                Legacy: set a fixed Rs price instead (ignores the exchange rate)
+              </summary>
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <FInput
+                  label="Actual Price (Rs)"
+                  type="number"
+                  min={0}
+                  value={p.actual_price}
+                  onChange={(e) => updatePricing(i, 'actual_price', e.target.value)}
+                  placeholder="5499"
+                />
+                <FInput
+                  label="Discounted Price (Rs)"
+                  type="number"
+                  min={0}
+                  value={p.discounted_price}
+                  onChange={(e) => updatePricing(i, 'discounted_price', e.target.value)}
+                  placeholder="4999"
+                />
+              </div>
+            </details>
           </div>
         ))}
         <button
@@ -315,7 +353,7 @@ const CourseForm = ({ form, setForm, allFeatures, allBenefits, onCreateFeature, 
 };
 
 // ── Course Card ───────────────────────────────────────────────────────────────
-const CourseCard = ({ course, onEdit, onDelete }) => {
+const CourseCard = ({ course, onEdit, onDelete, audToInrRate }) => {
   const pricings = course.CoursePricings ?? [];
   const features = course.Features ?? [];
   const benefits = course.Benefits ?? [];
@@ -369,7 +407,11 @@ const CourseCard = ({ course, onEdit, onDelete }) => {
       {pricings.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {pricings.map((tier, i) => {
-            const hasDiscount = Number(tier.discounted_price) < Number(tier.actual_price);
+            const audPrice = tier.discounted_price_aud ?? tier.actual_price_aud;
+            const hasAud = audPrice != null;
+            const hasDiscount = hasAud
+              ? Number(tier.discounted_price_aud) < Number(tier.actual_price_aud)
+              : Number(tier.discounted_price) < Number(tier.actual_price);
             return (
               <div
                 key={i}
@@ -388,16 +430,34 @@ const CourseCard = ({ course, onEdit, onDelete }) => {
                     {tier.is_early_bird ? 'Early Bird' : 'Standard'}
                   </span>
                 </div>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="font-bold">
-                    Rs {Number(tier.discounted_price ?? tier.actual_price).toLocaleString()}
-                  </span>
-                  {hasDiscount && (
-                    <span className="text-xs line-through text-slate-400">
-                      Rs {Number(tier.actual_price).toLocaleString()}
+                {hasAud ? (
+                  <div className="mt-0.5">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-bold">A${Number(audPrice).toLocaleString()}</span>
+                      {hasDiscount && (
+                        <span className="text-xs line-through text-slate-400">
+                          A${Number(tier.actual_price_aud).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    {audToInrRate != null && (
+                      <p className="text-[11px] text-slate-400">
+                        ≈ Rs {inrFromAud(audPrice, audToInrRate).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="font-bold">
+                      Rs {Number(tier.discounted_price ?? tier.actual_price).toLocaleString()}
                     </span>
-                  )}
-                </div>
+                    {hasDiscount && (
+                      <span className="text-xs line-through text-slate-400">
+                        Rs {Number(tier.actual_price).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -427,13 +487,93 @@ const CourseCard = ({ course, onEdit, onDelete }) => {
         <span className="flex items-center gap-1">
           <Tag className="w-3.5 h-3.5" /> {benefits.length} benefits
         </span>
-        {pricings.length > 0 && (
-          <span className="ml-auto font-semibold text-slate-600">
-            From Rs {Number(
-              Math.min(...pricings.map((p) => Number(p.discounted_price ?? p.actual_price)))
-            ).toLocaleString()}
-          </span>
-        )}
+        {pricings.length > 0 && (() => {
+          // Each tier's effective INR price, converting AUD tiers at the
+          // current rate — Math.min needs a single comparable unit.
+          const inrPrices = pricings
+            .map((p) => {
+              const aud = p.discounted_price_aud ?? p.actual_price_aud;
+              if (aud != null) return audToInrRate != null ? inrFromAud(aud, audToInrRate) : null;
+              const inr = p.discounted_price ?? p.actual_price;
+              return inr != null ? Number(inr) : null;
+            })
+            .filter((v) => v != null);
+          if (inrPrices.length === 0) return null;
+          return (
+            <span className="ml-auto font-semibold text-slate-600">
+              From Rs {Math.min(...inrPrices).toLocaleString()}
+            </span>
+          );
+        })()}
+      </div>
+    </div>
+  );
+};
+
+// ── Exchange rate ─────────────────────────────────────────────────────────────
+// The one knob every AUD-priced course's INR display and checkout amount is
+// computed from, live — see coursePricing.model.js / payment.service.js's
+// priceOf(). Nothing here is course-specific; it's a single site-wide rate.
+const ExchangeRateSettings = ({ rate, updatedAt, onSaved, notify }) => {
+  const [value, setValue] = useState(rate ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => setValue(rate ?? ''), [rate]);
+
+  const dirty = value !== '' && Number(value) !== Number(rate);
+
+  const save = async () => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      notify('error', 'Enter a valid positive rate');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await updatePricingConfig(parsed);
+      onSaved(res.data);
+      notify('success', 'Exchange rate updated — Pricing and checkout reflect it immediately');
+    } catch {
+      notify('error', 'Could not update the exchange rate');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-end gap-4">
+      <div className="flex items-start gap-3 flex-1">
+        <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <DollarSign className="w-4.5 h-4.5" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">AUD → INR exchange rate</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Used to convert every AUD-priced course to the INR amount shown on Pricing and
+            actually charged at checkout. Update it here when the market rate moves —
+            {updatedAt ? ` last set ${new Date(updatedAt).toLocaleString()}.` : ' never explicitly set yet.'}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-end gap-2 shrink-0">
+        <div className="w-32">
+          <FInput
+            label="1 AUD ="
+            type="number"
+            min={0}
+            step="0.01"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="68.40"
+          />
+        </div>
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 h-[38px]"
+        >
+          {saving ? 'Saving…' : 'Update'}
+        </button>
       </div>
     </div>
   );
@@ -451,6 +591,7 @@ export const AdminCourses = () => {
   const [form, setForm] = useState(EMPTY_COURSE);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
+  const [pricingConfig, setPricingConfig] = useState(null);
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -460,16 +601,18 @@ export const AdminCourses = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [coursesRes, featuresRes, benefitsRes] = await Promise.all([
+      const [coursesRes, featuresRes, benefitsRes, pricingConfigRes] = await Promise.all([
         getCourses(),
         getFeatures(),
         getBenefits(),
+        getPricingConfig(),
       ]);
       setCourses(coursesRes.data?.data ?? coursesRes.data ?? []);
       const fList = featuresRes.data?.data ?? featuresRes.data ?? [];
       const bList = benefitsRes.data?.data ?? benefitsRes.data ?? [];
       setAllFeatures(fList.map((f) => ({ id: f.id, label: f.name })));
       setAllBenefits(bList.map((b) => ({ id: b.id, label: b.title ?? b.description ?? '' })));
+      setPricingConfig(pricingConfigRes.data);
     } catch {
       showToast('error', 'Failed to load data');
     } finally {
@@ -496,9 +639,11 @@ export const AdminCourses = () => {
         ? course.CoursePricings.map((p) => ({
             actual_price: p.actual_price ?? '',
             discounted_price: p.discounted_price ?? '',
+            actual_price_aud: p.actual_price_aud ?? '',
+            discounted_price_aud: p.discounted_price_aud ?? '',
             is_early_bird: p.is_early_bird ?? false,
           }))
-        : [{ actual_price: '', discounted_price: '', is_early_bird: false }],
+        : [{ ...EMPTY_PRICING_TIER }],
       feature_ids: course.Features?.map((f) => f.id) ?? [],
       benefit_ids: course.Benefits?.map((b) => b.id) ?? [],
     });
@@ -541,10 +686,20 @@ export const AdminCourses = () => {
         duration_months: Number(form.duration_months),
         is_active: form.is_active,
         pricing: form.pricing
-          .filter((p) => p.actual_price || p.discounted_price)
+          .filter((p) => p.actual_price || p.discounted_price || p.actual_price_aud || p.discounted_price_aud)
           .map((p) => ({
-            actual_price: Number(p.actual_price),
-            discounted_price: Number(p.discounted_price || p.actual_price),
+            actual_price: p.actual_price ? Number(p.actual_price) : null,
+            discounted_price: p.discounted_price
+              ? Number(p.discounted_price)
+              : p.actual_price
+              ? Number(p.actual_price)
+              : null,
+            actual_price_aud: p.actual_price_aud ? Number(p.actual_price_aud) : null,
+            discounted_price_aud: p.discounted_price_aud
+              ? Number(p.discounted_price_aud)
+              : p.actual_price_aud
+              ? Number(p.actual_price_aud)
+              : null,
             is_early_bird: p.is_early_bird,
           })),
         feature_ids: form.feature_ids,
@@ -633,6 +788,13 @@ export const AdminCourses = () => {
           </button>
         </div>
 
+        <ExchangeRateSettings
+          rate={pricingConfig?.aud_to_inr_rate}
+          updatedAt={pricingConfig?.updatedAt}
+          onSaved={setPricingConfig}
+          notify={showToast}
+        />
+
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -649,6 +811,7 @@ export const AdminCourses = () => {
                 course={c}
                 onEdit={openEdit}
                 onDelete={setDeleteTarget}
+                audToInrRate={pricingConfig ? Number(pricingConfig.aud_to_inr_rate) : null}
               />
             ))}
           </div>

@@ -3,6 +3,10 @@ import axiosInstance from "../lib/axiosInstance";
 // ── Study notes ───────────────────────────────────────────────────────────────
 export const getNotes = () => axiosInstance.get('/notes');
 
+// No auth required — used on the public marketing homepage, before there is
+// an account to attach a token to. See notes/public/covers on the backend.
+export const getPublicNoteCovers = () => axiosInstance.get('/notes/public/covers');
+
 /**
  * Fetches the PDF through the authenticated endpoint, so the Authorization
  * header is sent and the Cloudinary URL never reaches the DOM.

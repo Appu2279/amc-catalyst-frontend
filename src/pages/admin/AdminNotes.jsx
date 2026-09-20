@@ -2,13 +2,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Modal } from '@/components/admin/Modal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { ProtectedImage } from '@/components/ProtectedImage';
 import {
   getNotesAdmin,
   uploadNote,
   updateNoteAdmin,
   deleteNoteAdmin,
+  uploadNoteCoverImage,
+  deleteNoteCoverImage,
 } from '@/api/adminService';
-import { Plus, Pencil, Trash2, FileText, UploadCloud } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileText, UploadCloud, Image as ImageIcon, X } from 'lucide-react';
+
+const COVER_MAX_BYTES = 5 * 1024 * 1024;
 
 // ── Small shared bits (kept local, matching the other admin pages) ────────────
 
@@ -85,7 +90,7 @@ const titleFromFilename = (name) =>
 const errorMessage = (err, fallback) =>
   err?.response?.data?.message || err?.message || fallback;
 
-const EMPTY_UPLOAD = { file: null, title: '', description: '', sort_order: '' };
+const EMPTY_UPLOAD = { file: null, cover: null, title: '', description: '', sort_order: '' };
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -98,6 +103,7 @@ export const AdminNotes = () => {
   const [progress, setProgress] = useState(null);
 
   const [editing, setEditing] = useState(null);
+  const [coverBusy, setCoverBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const [saving, setSaving] = useState(false);
@@ -137,6 +143,13 @@ export const AdminNotes = () => {
     }));
   };
 
+  const pickCover = (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return notify('error', 'Cover must be an image file.');
+    if (file.size > COVER_MAX_BYTES) return notify('error', 'Cover image must be smaller than 5MB.');
+    setUploadForm((f) => ({ ...f, cover: file }));
+  };
+
   const submitUpload = async () => {
     if (!uploadForm.file) return notify('error', 'Choose a PDF first');
 
@@ -156,6 +169,21 @@ export const AdminNotes = () => {
       const res = await uploadNote(body, (e) => {
         if (e.total) setProgress(Math.round((e.loaded / e.total) * 100));
       });
+
+      // The cover is a separate request keyed on the note's id, so it only
+      // goes out once the note itself exists. A failure here is reported on
+      // its own and does not undo the note upload above — the PDF is what
+      // has to succeed, the cover can always be added again from Edit.
+      if (uploadForm.cover && res.data?.id) {
+        const coverBody = new FormData();
+        coverBody.append('cover', uploadForm.cover);
+        try {
+          await uploadNoteCoverImage(res.data.id, coverBody);
+        } catch (err) {
+          notify('error', errorMessage(err, 'Note uploaded, but the cover image failed'));
+        }
+      }
+
       // 201 = new note, 200 = a note with this filename already existed and was
       // replaced. Worth saying out loud, or a re-upload looks like it did nothing.
       notify(
@@ -191,6 +219,43 @@ export const AdminNotes = () => {
       notify('error', errorMessage(err, 'Could not update note'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Cover changes apply immediately rather than waiting on Save — the note's
+  // metadata and its cover are two independent things on the server (two
+  // separate endpoints), so there's nothing for a combined "Save" to batch.
+  const replaceEditCover = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return notify('error', 'Cover must be an image file.');
+    if (file.size > COVER_MAX_BYTES) return notify('error', 'Cover image must be smaller than 5MB.');
+
+    const body = new FormData();
+    body.append('cover', file);
+    setCoverBusy(true);
+    try {
+      await uploadNoteCoverImage(editing.id, body);
+      setEditing((n) => ({ ...n, has_cover: true }));
+      setNotes((all) => all.map((n) => (n.id === editing.id ? { ...n, has_cover: true } : n)));
+      notify('success', 'Cover image updated');
+    } catch (err) {
+      notify('error', errorMessage(err, 'Could not update cover image'));
+    } finally {
+      setCoverBusy(false);
+    }
+  };
+
+  const removeEditCover = async () => {
+    setCoverBusy(true);
+    try {
+      await deleteNoteCoverImage(editing.id);
+      setEditing((n) => ({ ...n, has_cover: false }));
+      setNotes((all) => all.map((n) => (n.id === editing.id ? { ...n, has_cover: false } : n)));
+      notify('success', 'Cover image removed');
+    } catch (err) {
+      notify('error', errorMessage(err, 'Could not remove cover image'));
+    } finally {
+      setCoverBusy(false);
     }
   };
 
@@ -387,6 +452,26 @@ export const AdminNotes = () => {
             </div>
           )}
 
+          <FormField
+            label="Cover image"
+            hint="Optional. Shown as the thumbnail on the student Notes page."
+          >
+            <label className="flex items-center gap-3 border-2 border-dashed border-slate-200 rounded-xl px-4 py-3 cursor-pointer hover:border-brand-blue/50 hover:bg-slate-50 transition">
+              <ImageIcon className="w-5 h-5 text-slate-300 shrink-0" />
+              {uploadForm.cover ? (
+                <p className="text-sm font-medium text-slate-700 truncate">{uploadForm.cover.name}</p>
+              ) : (
+                <p className="text-sm text-slate-500">Choose an image (up to 5MB)</p>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => pickCover(e.target.files?.[0])}
+              />
+            </label>
+          </FormField>
+
           <FormField label="Title">
             <Input
               value={uploadForm.title}
@@ -443,6 +528,43 @@ export const AdminNotes = () => {
       >
         {editing && (
           <div className="space-y-4">
+            <FormField label="Cover image" hint="Shown as the thumbnail on the student Notes page.">
+              <div className="flex items-center gap-3">
+                {editing.has_cover ? (
+                  <ProtectedImage
+                    src={`/api/notes/${editing.id}/cover`}
+                    alt={editing.title}
+                    className="w-16 h-16 rounded-lg object-cover border border-slate-200"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center text-slate-300">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                )}
+                <label className="px-3 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition">
+                  {coverBusy ? 'Uploading…' : editing.has_cover ? 'Replace' : 'Upload'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={coverBusy}
+                    onChange={(e) => replaceEditCover(e.target.files?.[0])}
+                  />
+                </label>
+                {editing.has_cover && (
+                  <button
+                    type="button"
+                    onClick={removeEditCover}
+                    disabled={coverBusy}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                    title="Remove cover image"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </FormField>
+
             <FormField label="Title">
               <Input
                 value={editing.title}

@@ -4,6 +4,7 @@ import { Modal } from '@/components/admin/Modal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import {
   getSubjects,
+  getExamDomains,
   createSubject,
   updateSubject,
   deleteSubject,
@@ -92,6 +93,8 @@ const Toast = ({ toast }) => {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export const AdminSubjects = () => {
   const [subjects, setSubjects] = useState([]);
+  const [examDomains, setExamDomains] = useState([]);
+  const [isUnassignedOnly, setIsUnassignedOnly] = useState(false);
   const [topics, setTopics] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,6 +128,12 @@ export const AdminSubjects = () => {
   }, []);
 
   useEffect(() => { loadSubjects(); }, [loadSubjects]);
+
+  useEffect(() => {
+    getExamDomains()
+      .then((res) => setExamDomains(res.data ?? []))
+      .catch(() => showToast('error', 'Failed to load exam domains'));
+  }, []);
 
   const loadTopics = async (subject) => {
     setSelectedSubject(subject);
@@ -169,6 +178,26 @@ export const AdminSubjects = () => {
       showToast('error', 'Failed to update subject');
     }
   };
+
+  // Optimistic: 120+ subjects get assigned one after another, so the dropdown
+  // should not wait on a reload between picks.
+  const saveSubjectDomain = async (subject, examDomain) => {
+    const previous = subject.exam_domain;
+    const next = examDomain || null;
+    setSubjects((list) => list.map((s) => (s.id === subject.id ? { ...s, exam_domain: next } : s)));
+    try {
+      await updateSubject(subject.id, { exam_domain: next });
+    } catch (err) {
+      // Only roll back if no newer pick has replaced this one in the meantime.
+      setSubjects((list) => list.map((s) => (
+        s.id === subject.id && s.exam_domain === next ? { ...s, exam_domain: previous } : s
+      )));
+      showToast('error', err?.response?.data?.message || 'Failed to update exam domain');
+    }
+  };
+
+  const unassignedCount = subjects.filter((s) => !s.exam_domain).length;
+  const visibleSubjects = isUnassignedOnly ? subjects.filter((s) => !s.exam_domain) : subjects;
 
   const toggleSubjectActive = async (subject) => {
     try {
@@ -364,15 +393,35 @@ export const AdminSubjects = () => {
               </button>
             </div>
 
+            {!loading && subjects.length > 0 && (
+              <div className="flex items-center justify-between gap-3 px-5 py-2.5 border-b border-slate-100 bg-slate-50 text-xs">
+                <span className={unassignedCount ? 'text-amber-700 font-medium' : 'text-slate-500'}>
+                  {unassignedCount
+                    ? `${unassignedCount} subject${unassignedCount === 1 ? '' : 's'} without an exam domain — left out of AMC mocks`
+                    : 'Every subject has an exam domain'}
+                </span>
+                <label className="flex items-center gap-1.5 text-slate-600 cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={isUnassignedOnly}
+                    onChange={(e) => setIsUnassignedOnly(e.target.checked)}
+                  />
+                  Unassigned only
+                </label>
+              </div>
+            )}
+
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-6 h-6 border-4 border-brand-blue border-t-transparent rounded-full animate-spin" />
               </div>
             ) : subjects.length === 0 ? (
               <p className="text-center text-slate-400 py-16 text-sm">No subjects yet.</p>
+            ) : visibleSubjects.length === 0 ? (
+              <p className="text-center text-slate-400 py-16 text-sm">Every subject has an exam domain.</p>
             ) : (
               <div className="divide-y divide-slate-100 overflow-y-auto">
-                {subjects.map((s) => (
+                {visibleSubjects.map((s) => (
                   <div
                     key={s.id}
                     className={`flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-colors ${
@@ -396,6 +445,20 @@ export const AdminSubjects = () => {
                         </>
                       )}
                     </div>
+                    <select
+                      value={s.exam_domain ?? ''}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => saveSubjectDomain(s, e.target.value)}
+                      title="Exam domain used for AMC-weighted mocks"
+                      className={`w-40 shrink-0 px-2 py-1 text-xs rounded-lg border focus:outline-none focus:ring-2 focus:ring-brand-blue ${
+                        s.exam_domain ? 'border-slate-300 text-slate-700' : 'border-amber-400 bg-amber-50 text-amber-800'
+                      }`}
+                    >
+                      <option value="">No domain</option>
+                      {examDomains.map((d) => (
+                        <option key={d.key} value={d.key}>{d.label}</option>
+                      ))}
+                    </select>
                     <Toggle value={s.is_active} onChange={() => toggleSubjectActive(s)} />
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingSubject(s); }}

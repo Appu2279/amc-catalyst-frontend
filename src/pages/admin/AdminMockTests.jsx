@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Modal } from '@/components/admin/Modal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { CreateWeightedMockModal } from '@/components/admin/CreateWeightedMockModal';
 import {
   getMockTests,
   createMockTest,
@@ -13,7 +14,7 @@ import {
   getSubjects,
   getQuestionPool,
 } from '@/api/adminService';
-import { Plus, Eye, Trash2, ToggleLeft, ToggleRight, PieChart, Pencil } from 'lucide-react';
+import { Plus, Eye, Trash2, ToggleLeft, ToggleRight, PieChart, Pencil, Scale } from 'lucide-react';
 
 // ── Mini SVG Pie (difficulty preview) ────────────────────────────────────────
 const MiniPie = ({ easy, medium, hard }) => {
@@ -299,6 +300,7 @@ export const AdminMockTests = () => {
   const [dynamicForm, setDynamicForm] = useState(EMPTY_DYNAMIC);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isWeightedModalOpen, setIsWeightedModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -495,6 +497,12 @@ export const AdminMockTests = () => {
         message={`Delete "${deleteTarget?.title}"? This cannot be undone.`}
       />
 
+      <CreateWeightedMockModal
+        open={isWeightedModalOpen}
+        onClose={() => setIsWeightedModalOpen(false)}
+        onCreated={load}
+      />
+
       {/* Create/edit modal */}
       <Modal
         open={modalOpen}
@@ -539,9 +547,17 @@ export const AdminMockTests = () => {
       <div className="p-6 max-w-7xl mx-auto space-y-5">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-slate-900">Mock Tests</h1>
-          <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-brand-blue text-white rounded-lg hover:bg-brand-blue-hover">
-            <Plus className="w-4 h-4" /> Create Test
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsWeightedModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm border border-brand-blue text-brand-blue rounded-lg hover:bg-brand-blue/5"
+            >
+              <Scale className="w-4 h-4" /> Create AMC Mock
+            </button>
+            <button onClick={openCreate} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-brand-blue text-white rounded-lg hover:bg-brand-blue-hover">
+              <Plus className="w-4 h-4" /> Create Test
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">

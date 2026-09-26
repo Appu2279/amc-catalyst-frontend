@@ -8,9 +8,19 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ProtectedImage } from '@/components/ProtectedImage';
+import { EarlyBirdSign } from '@/components/EarlyBirdSign';
+import { FreeMockAnnouncement } from '@/components/FreeMockAnnouncement';
 import { getPublicNoteCovers } from '@/api/noteService';
 
 const HERO_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80';
+
+// Where each card in the hero stack sits: the current cover in front, the next
+// two fanned out behind it.
+const STACK_POSITIONS = [
+  { rotate: -2, x: 0, y: 0, scale: 1 },
+  { rotate: 8, x: 44, y: 6, scale: 0.92 },
+  { rotate: -8, x: -44, y: 10, scale: 0.88 },
+];
 
 /**
  * The hero visual: a slideshow of note cover art once there is any (fetched
@@ -48,6 +58,10 @@ const HeroSlideshow = () => {
   }
 
   const current = covers[index];
+  // Current cover plus up to two after it, front to back.
+  const stack = covers
+    .slice(0, 3)
+    .map((_, depth) => ({ cover: covers[(index + depth) % covers.length], depth }));
 
   return (
     <div
@@ -60,32 +74,27 @@ const HeroSlideshow = () => {
       <div className="absolute -top-12 -right-12 w-56 h-56 bg-brand-violet/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-12 -left-12 w-56 h-56 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* A couple of ghost cards behind the current one, hinting there is a
-          whole set of notes here rather than a single picture. */}
-      {current && (
-        <>
-          <div className="absolute w-[190px] md:w-[230px] aspect-[2/3] rounded-xl bg-white border border-slate-200 shadow-sm rotate-[9deg] translate-x-8" />
-          <div className="absolute w-[190px] md:w-[230px] aspect-[2/3] rounded-xl bg-white border border-slate-200 shadow-sm -rotate-[7deg] -translate-x-8" />
-        </>
-      )}
-
-      <AnimatePresence mode="wait">
-        {current && (
+      {/* The next covers fan out behind the current one, so the set reads as a
+          real stack of notes. Cards are keyed by cover, so on each advance the
+          card behind slides forward instead of every image re-mounting. */}
+      <AnimatePresence>
+        {stack.map(({ cover, depth }) => (
           <motion.div
-            key={current.id}
-            initial={{ opacity: 0, y: 10, rotate: 0, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, rotate: -2, scale: 1 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="relative z-10 w-[190px] md:w-[230px] rounded-xl overflow-hidden shadow-xl ring-1 ring-black/5 bg-white"
+            key={cover.id}
+            initial={{ opacity: 0, scale: 0.85, ...STACK_POSITIONS[depth] }}
+            animate={{ opacity: 1, ...STACK_POSITIONS[depth] }}
+            exit={{ opacity: 0, y: -16, scale: 1.03 }}
+            transition={{ duration: 0.6, ease: 'easeInOut' }}
+            style={{ zIndex: 10 - depth }}
+            className="absolute w-[190px] md:w-[230px] rounded-xl overflow-hidden shadow-xl ring-1 ring-black/5 bg-white"
           >
             <ProtectedImage
-              src={`/api/notes/public/${current.id}/cover`}
-              alt={current.title}
-              className="w-full h-[285px] md:h-[345px] object-cover"
+              src={`/api/notes/public/${cover.id}/cover`}
+              alt={depth === 0 ? cover.title : ''}
+              className={`w-full h-[285px] md:h-[345px] object-cover ${depth > 0 ? 'brightness-95' : ''}`}
             />
           </motion.div>
-        )}
+        ))}
       </AnimatePresence>
 
       {/* Right-aligned, not centred — the "Topics Covered" badge floats over
@@ -212,6 +221,7 @@ export const Home = () => {
               transition={{ delay: 0.2, duration: 0.6 }}
               className="relative"
             >
+              <EarlyBirdSign className="absolute -top-12 lg:-top-8 left-4 md:left-8 z-20" />
               <div className="rounded-[2rem] overflow-hidden border-4 border-slate-50 shadow-lg">
                 <HeroSlideshow />
               </div>
@@ -231,6 +241,10 @@ export const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Free international AMC 1 mock (October) — straight after the hero so
+          it is the second thing every visitor sees. */}
+      <FreeMockAnnouncement />
 
       {/* 2. HOW IT WORKS — added after student feedback that it wasn't obvious
           what to actually do on the site: try something free, or pay. A dark

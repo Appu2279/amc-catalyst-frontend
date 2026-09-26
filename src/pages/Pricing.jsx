@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { getCourses, getPricingConfig } from '../api/courseService';
 import { useAuth } from '@/context/AuthContext';
 import { AMCNotesIndex } from '@/components/AMCNotesIndex';
+import { EarlyBirdTag } from '@/components/EarlyBirdTag';
 
 // Static supporting copy from the client's sheet — presentation only, so it is
 // not stored against any plan.
@@ -212,6 +213,10 @@ export const Pricing = () => {
     <div className="relative overflow-hidden bg-white py-24">
       <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold opacity-50" />
 
+      {/* Wide screens: hangs from the top bar beside the heading. Narrower
+          screens have no room there, so it hangs from the pill below instead. */}
+      <EarlyBirdTag stringHeight={110} className="hidden lg:flex absolute top-0 right-[8%] z-10" />
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -227,6 +232,7 @@ export const Pricing = () => {
           <span className="mt-8 inline-block rounded-full bg-brand-violet/10 px-6 py-2 text-xs font-black uppercase tracking-widest text-brand-violet">
             All plans include 6 months of access
           </span>
+          <EarlyBirdTag stringHeight={16} className="flex lg:hidden" />
         </div>
 
         {/* Plans */}

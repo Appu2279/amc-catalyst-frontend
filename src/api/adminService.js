@@ -51,9 +51,14 @@ export const addMockTestQuestions = (id, questions) =>
 export const removeMockTestQuestion = (id, qId) =>
   axiosInstance.delete(`/admin/mock-tests/${id}/questions/${qId}`);
 export const getQuestionPool = () => axiosInstance.get('/admin/mock-tests/question-pool');
+// AMC-weighted fixed mocks, built from each subject's exam domain.
+export const getWeightedMockPreview = (questionCount) =>
+  axiosInstance.get('/admin/mock-tests/weighted/preview', { params: { question_count: questionCount } });
+export const createWeightedMock = (data) => axiosInstance.post('/admin/mock-tests/weighted', data);
 
 // Subjects & Topics
 export const getSubjects = () => axiosInstance.get('/subjects');
+export const getExamDomains = () => axiosInstance.get('/subjects/exam-domains');
 export const createSubject = (data) => axiosInstance.post('/subjects', data);
 export const updateSubject = (id, data) => axiosInstance.put(`/subjects/${id}`, data);
 export const deleteSubject = (id) => axiosInstance.delete(`/subjects/${id}`);

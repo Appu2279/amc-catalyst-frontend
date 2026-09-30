@@ -195,7 +195,7 @@ export const CreateWeightedMockModal = ({ open, onClose, onCreated }) => {
         <div className="space-y-5">
           <p className="text-sm text-slate-600">
             Builds a fixed mock in the AMC weightage — Medicine 30%, Surgery 20%, and Women&apos;s, Child, Mental and
-            Population Health &amp; Ethics 12.5% each — using recall questions not yet in any mock.
+            Population Health &amp; Ethics 12.5% each — using recall and QBank questions not yet in any mock.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -44,6 +44,16 @@ export const checkAnswer     = (id, data) => axiosInstance.post(`/questions/${id
 // filtered out server-side, so what comes back is exactly what to offer.
 export const getQuestionBatches = (params) => axiosInstance.get('/questions/batches', { params });
 
+// QBank is practised by subject, then optionally by topic: each with its
+// question count and this student's progress, then the ordered ids to practise.
+export const getQuestionSubjects = (params) => axiosInstance.get('/questions/subjects', { params });
+export const getQuestionTopics   = (params) => axiosInstance.get('/questions/topics', { params });
+
+// Bookmarks — practised back through getQuestionIds({ only: 'bookmarked' }).
+export const addBookmark    = (questionId) => axiosInstance.post('/bookmarks', { question_id: questionId });
+export const removeBookmark = (questionId) => axiosInstance.delete(`/bookmarks/${questionId}`);
+export const getQuestionIds      = (params) => axiosInstance.get('/questions/ids', { params });
+
 export const getPracticeProgress = (params) => axiosInstance.get('/questions/progress', { params });
 
 // "Start over" — clears this student's answers for one practice mode so the set

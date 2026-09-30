@@ -2,14 +2,15 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import {
-  getQuestions, getSubjectsPublic, checkAnswer,
-  getPracticeProgress, resetPracticeProgress, getQuestionBatches,
+  getQuestions, getQuestionById, checkAnswer,
+  getPracticeProgress, resetPracticeProgress, getQuestionSubjects, getQuestionTopics, getQuestionIds,
+  addBookmark, removeBookmark,
 } from '@/api/userService';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
 import {
   Check, X, ChevronLeft, ChevronRight, RefreshCw, Lightbulb, Layers,
-  ArrowRight, CheckCircle2, Sparkles, Lock,
+  ArrowRight, CheckCircle2, Sparkles, Lock, Bookmark, RotateCcw,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { SampleBanner } from '@/components/SampleBanner';
@@ -35,12 +36,118 @@ const ExplanationText = ({ text, className = '' }) => {
   );
 };
 
+// Questions are fetched in pages rather than all at once: one subject can hold
+// thousands of them.
+const PAGE_SIZE = 50;
+
+// Stand in for an id when the student practises the whole bank, or every
+// topic of one subject.
+const ALL_SUBJECTS = 'all';
+const ALL_TOPICS = 'all';
+
+// Must match PRACTICE_SCOPES on the backend. "All subjects" keeps its own
+// progress, separate from the per-subject cards.
+const PRACTICE_SCOPE_BY_MODE = { subject: 'default', allSubjects: 'all_subjects' };
+
+const SubjectCard = ({ title, subtitle, total, available, answered, correct, hasPlan, onOpen, onRedoIncorrect }) => {
+  const incorrect = answered - correct;
+  const pct = available ? Math.round((answered / available) * 100) : 0;
+  const isComplete = answered > 0 && answered >= available;
+  const isLocked = available === 0;
+  const isSamplesOnly = !hasPlan && available > 0 && available < total;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow flex flex-col">
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <h2 className="text-base font-semibold text-slate-900 leading-snug">{title}</h2>
+        {isComplete ? (
+          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
+            <CheckCircle2 className="w-3 h-3" /> Completed
+          </span>
+        ) : isSamplesOnly ? (
+          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+            <Sparkles className="w-3 h-3 text-amber-600" /> {available} free
+          </span>
+        ) : isLocked ? (
+          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+            <Lock className="w-3 h-3 text-slate-400" /> Unlock
+          </span>
+        ) : null}
+      </div>
+
+      {subtitle && <p className="text-xs text-slate-400 mb-2">{subtitle}</p>}
+
+      <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
+        <span className="flex items-center gap-1.5">
+          <Layers className="w-4 h-4" /> {total} questions
+        </span>
+        {answered > 0 && (
+          <span className="tabular-nums">
+            {answered} answered · <span className="text-green-600">{correct} correct</span>
+          </span>
+        )}
+      </div>
+
+      {answered > 0 && (
+        <div className="mb-4 w-full bg-slate-100 rounded-full h-1.5">
+          <div className="bg-brand-blue h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+
+      {isLocked ? (
+        <Link
+          to="/pricing"
+          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-violet-50 py-2.5 text-sm font-bold text-violet-700 transition-colors hover:bg-violet-100"
+        >
+          <Lock className="h-4 w-4" />
+          Unlock with a plan
+        </Link>
+      ) : (
+        <button
+          onClick={onOpen}
+          className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
+        >
+          {answered > 0 && !isComplete ? 'Continue' : answered > 0 ? 'Practise again' : 'Start practising'}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      )}
+
+      {!isLocked && onRedoIncorrect && incorrect > 0 && (
+        <button
+          onClick={onRedoIncorrect}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          Redo {incorrect} incorrect
+        </button>
+      )}
+    </div>
+  );
+};
+
 export const QBank = () => {
   const { sections, samples, loading: accessLoading } = useAccess();
 
-  const [questions, setQuestions]     = useState([]);
+  // QBank is one bank practised subject by subject — which upload a question
+  // arrived in does not matter to the student.
+  const [subjects, setSubjects]       = useState([]);
+  const [allSubjects, setAllSubjects] = useState(null);
+  const [subjectsLoaded, setSubjectsLoaded] = useState(false);
+  const [subjectId, setSubjectId]     = useState(null);
+
+  // Inside a subject the student picks a topic, or all of the subject's topics.
+  const [topicId, setTopicId]         = useState(null);
+  const [subjectTopics, setSubjectTopics] = useState(null);
+
+  // Narrows practice to the student's own questions: 'incorrect' or 'bookmarked'.
+  const [only, setOnly]               = useState(null);
+  const [bookmarkedIds, setBookmarkedIds] = useState(() => new Set());
+
+  // The full ordered id list for the open subject, plus the questions fetched
+  // so far, keyed by id.
+  const [questionIds, setQuestionIds] = useState([]);
+  const [questionsById, setQuestionsById] = useState({});
   const [loading, setLoading]         = useState(true);
-  const [total, setTotal]             = useState(0);
   const [currentIdx, setCurrentIdx]   = useState(0);
   const [selectedId, setSelectedId]   = useState(null);
   const [checking, setChecking]       = useState(false);
@@ -49,74 +156,145 @@ export const QBank = () => {
   const [answered, setAnswered]       = useState({});
   const [resuming, setResuming]       = useState(false);
 
-  // QBank is grouped by upload — one import batch is one set ("AMC Free 209 MCQ").
-  const [batches, setBatches]         = useState([]);
-  const [batchId, setBatchId]         = useState(null);
-  const [batchesLoaded, setBatchesLoaded] = useState(false);
-
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting]     = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState(null);
 
-  const loadBatches = useCallback(() => {
-    return getQuestionBatches({ source_type: 'qbank' })
-      .then((res) => setBatches(res.data?.data ?? []))
-      .catch(() => setBatches([]))
-      .finally(() => setBatchesLoaded(true));
+  const isAllSubjects = subjectId === ALL_SUBJECTS;
+  const isPractising = subjectId !== null && topicId !== null;
+  // Bookmarks are one list across the bank, so practising them is not the
+  // "All subjects" run and keeps to the default scope.
+  const practiceScope = isAllSubjects && only !== 'bookmarked'
+    ? PRACTICE_SCOPE_BY_MODE.allSubjects
+    : PRACTICE_SCOPE_BY_MODE.subject;
+  const practiceFilter = {
+    ...(subjectId && !isAllSubjects ? { subject_id: subjectId } : {}),
+    ...(topicId && topicId !== ALL_TOPICS ? { topic_id: topicId } : {}),
+    ...(only ? { only, practice_scope: practiceScope } : {}),
+  };
+  const subjectName = subjects.find((s) => s.id === subjectId)?.name ?? 'Question Bank';
+  const groupName = isAllSubjects
+    ? 'All subjects'
+    : topicId === ALL_TOPICS
+      ? `All of ${subjectName}`
+      : subjectTopics?.topics.find((t) => t.id === topicId)?.name ?? subjectName;
+  const practiceName = only === 'bookmarked'
+    ? 'Bookmarked'
+    : only === 'incorrect' ? `${groupName} · Incorrect` : groupName;
+
+  const loadSubjects = useCallback(() => {
+    return getQuestionSubjects({ source_type: 'qbank' })
+      .then((res) => {
+        setSubjects(res.data?.data?.subjects ?? []);
+        setAllSubjects(res.data?.data?.all_subjects ?? null);
+      })
+      .catch(() => {
+        setSubjects([]);
+        setAllSubjects(null);
+      })
+      .finally(() => setSubjectsLoaded(true));
+  }, []);
+
+  const loadBookmarks = useCallback(() => {
+    return getQuestionIds({ source_type: 'qbank', only: 'bookmarked' })
+      .then((res) => setBookmarkedIds(new Set(res.data?.data ?? [])))
+      .catch(() => { /* bookmarks are optional; the stars just stay empty */ });
   }, []);
 
   useEffect(() => {
-    if (batchId === null) loadBatches();
-  }, [batchId, loadBatches]);
+    if (subjectId === null) {
+      loadSubjects();
+      loadBookmarks();
+    }
+  }, [subjectId, loadSubjects, loadBookmarks]);
 
-  const loadQuestions = useCallback(async () => {
+  useEffect(() => {
+    if (subjectId === null || isAllSubjects || topicId !== null) return;
+    setSubjectTopics(null);
+    getQuestionTopics({ source_type: 'qbank', subject_id: subjectId })
+      .then((res) => setSubjectTopics(res.data?.data ?? { subject: null, topics: [] }))
+      .catch(() => setSubjectTopics({ subject: null, topics: [] }));
+  }, [subjectId, isAllSubjects, topicId]);
+
+  const loadQuestionIds = useCallback(async () => {
     setLoading(true);
+    setQuestionsById({});
     setCurrentIdx(0);
     setSelectedId(null);
     setChecked(false);
     setCheckResult(null);
     try {
-      const params = { source_type: 'qbank', limit: 500, is_active: true };
-      if (batchId) params.import_batch_id = batchId;
-
-      const [questionRes, progressRes] = await Promise.all([
-        getQuestions(params),
-        getPracticeProgress({ source_type: 'qbank', ...(batchId ? { import_batch_id: batchId } : {}) })
+      const [idsRes, progressRes] = await Promise.all([
+        getQuestionIds({ source_type: 'qbank', ...practiceFilter }),
+        getPracticeProgress({ source_type: 'qbank', ...practiceFilter, practice_scope: practiceScope })
           .catch(() => null),
       ]);
 
-      const list = questionRes.data?.data ?? [];
-      setQuestions(list);
-      setTotal(questionRes.data?.pagination?.total ?? 0);
+      const ids = idsRes.data?.data ?? [];
+      setQuestionIds(ids);
 
-      const progress = progressRes?.data?.data;
       const answeredMap = Object.fromEntries(
-        (progress?.answers ?? []).map((a) => [a.question_id, Boolean(a.is_correct)])
+        (progressRes?.data?.data?.answers ?? []).map((a) => [a.question_id, Boolean(a.is_correct)])
       );
-      setAnswered(answeredMap);
+      // Redoing incorrect or bookmarked questions is a fresh pass: the score
+      // counts this session, and every question starts unanswered.
+      setAnswered(only ? {} : answeredMap);
 
-      const firstUnanswered = list.findIndex((q) => !(q.id in answeredMap));
+      const firstUnanswered = only ? 0 : ids.findIndex((id) => !(id in answeredMap));
       const resumeAt = firstUnanswered === -1 ? 0 : firstUnanswered;
       setCurrentIdx(resumeAt);
       setResuming(resumeAt > 0);
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [batchId]);
+    // practiceFilter and practiceScope are derived from subjectId, topicId and only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subjectId, topicId, only]);
 
   useEffect(() => {
-    if (batchesLoaded && batchId !== null) loadQuestions();
-  }, [loadQuestions, batchesLoaded, batchId]);
+    if (isPractising) loadQuestionIds();
+  }, [loadQuestionIds, isPractising]);
 
-  const q = questions[currentIdx];
+  const currentId = questionIds[currentIdx];
+  const q = currentId ? questionsById[currentId] : undefined;
+
+  // Fetch the page holding the current question when it is not loaded yet.
+  // Pages line up with the id list: same filter, same order.
+  useEffect(() => {
+    if (loading || !currentId || questionsById[currentId]) return;
+    let isCancelled = false;
+    getQuestions({
+      source_type: 'qbank',
+      ...practiceFilter,
+      is_active: true,
+      limit: PAGE_SIZE,
+      page: Math.floor(currentIdx / PAGE_SIZE) + 1,
+    })
+      .then((res) => {
+        if (isCancelled) return;
+        const fetched = Object.fromEntries((res.data?.data ?? []).map((item) => [item.id, item]));
+        setQuestionsById((prev) => ({ ...prev, ...fetched }));
+        // A question added or removed since the id list was taken shifts the
+        // pages, so fall back to fetching the current one on its own.
+        if (!fetched[currentId]) {
+          return getQuestionById(currentId).then((single) => {
+            const item = single.data?.data ?? single.data;
+            if (!isCancelled && item) setQuestionsById((prev) => ({ ...prev, [item.id]: item }));
+          });
+        }
+      })
+      .catch(() => { /* the spinner stays; moving on retries */ });
+    return () => { isCancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, currentId, currentIdx, questionsById]);
 
   const score = useMemo(() => {
     let correct = 0, wrong = 0;
-    for (const item of questions) {
-      if (!(item.id in answered)) continue;
-      answered[item.id] ? correct++ : wrong++;
+    for (const id of questionIds) {
+      if (!(id in answered)) continue;
+      answered[id] ? correct++ : wrong++;
     }
     return { correct, wrong };
-  }, [questions, answered]);
+  }, [questionIds, answered]);
 
   const isCorrect = checkResult?.is_correct;
   const correctOpt = checkResult?.options?.find((o) => o.is_correct);
@@ -129,7 +307,7 @@ export const QBank = () => {
     setSelectedId(optId);
     setChecking(true);
     try {
-      const res = await checkAnswer(q.id, { selected_option_id: optId });
+      const res = await checkAnswer(q.id, { selected_option_id: optId, practice_scope: practiceScope });
       const result = res.data?.data ?? res.data;
       setCheckResult(result);
       setChecked(true);
@@ -141,10 +319,25 @@ export const QBank = () => {
     }
   };
 
+  const toggleBookmark = async (questionId) => {
+    const isBookmarked = bookmarkedIds.has(questionId);
+    const update = (shouldHave) => setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      shouldHave ? next.add(questionId) : next.delete(questionId);
+      return next;
+    });
+    update(!isBookmarked);
+    try {
+      await (isBookmarked ? removeBookmark(questionId) : addBookmark(questionId));
+    } catch {
+      update(isBookmarked);
+    }
+  };
+
   const handleStartOver = async () => {
     setResetting(true);
     try {
-      await resetPracticeProgress({ source_type: 'qbank', ...(batchId ? { import_batch_id: batchId } : {}) });
+      await resetPracticeProgress({ source_type: 'qbank', ...practiceFilter, practice_scope: practiceScope });
       setAnswered({});
       setCurrentIdx(0);
       setSelectedId(null);
@@ -158,7 +351,7 @@ export const QBank = () => {
 
   const go = (dir) => {
     const next = currentIdx + dir;
-    if (next < 0 || next >= questions.length) return;
+    if (next < 0 || next >= questionIds.length) return;
     setResuming(false);
     setCurrentIdx(next);
     setSelectedId(null);
@@ -179,9 +372,17 @@ export const QBank = () => {
   }
 
   const showingSamples = !sections.qbank && samples.qbank > 0;
+  const hasPlan = Boolean(sections.qbank);
 
-  // ── Set picker ──────────────────────────────────────────────────────────────
-  if (batchesLoaded && batchId === null) {
+  // ── Subject picker ──────────────────────────────────────────────────────────
+  if (subjectsLoaded && subjectId === null) {
+    const bankTotals = {
+      total: allSubjects?.question_count ?? 0,
+      available: allSubjects?.available_count ?? 0,
+      answered: allSubjects?.answered_count ?? 0,
+      correct: allSubjects?.correct_count ?? 0,
+    };
+
     return (
       <DashboardLayout active="qbank">
         {showingSamples && <SampleBanner count={samples.qbank} noun="questions" />}
@@ -190,11 +391,11 @@ export const QBank = () => {
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-slate-900">Question Bank</h1>
               <p className="text-slate-500 text-sm mt-1">
-                Subject-wise MCQs with full explanations for every option.
+                Pick a subject and work through every question in it, with full explanations.
               </p>
             </div>
 
-            {!sections.qbank && batches.some((b) => !b.is_free) && (
+            {!hasPlan && bankTotals.available < bankTotals.total && (
               <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 via-white to-blue-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
                 <div className="flex items-start gap-3">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-violet text-white">
@@ -202,9 +403,7 @@ export const QBank = () => {
                   </span>
                   <p className="text-sm text-slate-700">
                     <span className="font-bold text-slate-900">The full question bank comes with any plan.</span>{' '}
-                    <span className="text-slate-500">
-                      Free samples below are open to everyone.
-                    </span>
+                    <span className="text-slate-500">Free sample questions are open to everyone.</span>
                   </p>
                 </div>
                 <Link
@@ -217,81 +416,134 @@ export const QBank = () => {
               </div>
             )}
 
-            {batches.length === 0 ? (
+            {subjects.length === 0 ? (
               <div className="text-center py-24">
                 <Layers className="w-14 h-14 text-slate-200 mx-auto mb-4" />
-                <p className="text-slate-400">No question sets are available yet.</p>
+                <p className="text-slate-400">No questions are available yet.</p>
                 <p className="text-slate-300 text-sm mt-1">Check back soon!</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {batches.map((b) => {
-                  const done = b.answered_count ?? 0;
-                  const pct = b.question_count ? Math.round((done / b.question_count) * 100) : 0;
-                  const complete = done > 0 && done >= b.question_count;
-                  const isFree = Boolean(b.is_free);
-                  const hasAccess = Boolean(sections.qbank || isFree);
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <SubjectCard
+                  title="All subjects"
+                  subtitle="The whole bank, every subject mixed"
+                  total={bankTotals.total}
+                  available={bankTotals.available}
+                  answered={bankTotals.answered}
+                  correct={bankTotals.correct}
+                  hasPlan={hasPlan}
+                  onOpen={() => {
+                    setSubjectId(ALL_SUBJECTS);
+                    setTopicId(ALL_TOPICS);
+                  }}
+                  onRedoIncorrect={() => {
+                    setSubjectId(ALL_SUBJECTS);
+                    setTopicId(ALL_TOPICS);
+                    setOnly('incorrect');
+                  }}
+                />
+                {bookmarkedIds.size > 0 && (
+                  <SubjectCard
+                    title="Bookmarked"
+                    subtitle="Questions you saved to come back to"
+                    total={bookmarkedIds.size}
+                    available={bookmarkedIds.size}
+                    answered={0}
+                    correct={0}
+                    hasPlan={hasPlan}
+                    onOpen={() => {
+                      setSubjectId(ALL_SUBJECTS);
+                      setTopicId(ALL_TOPICS);
+                      setOnly('bookmarked');
+                    }}
+                  />
+                )}
+                {subjects.map((s) => (
+                  <SubjectCard
+                    key={s.id}
+                    title={s.name}
+                    total={s.question_count}
+                    available={s.available_count}
+                    answered={s.answered_count}
+                    correct={s.correct_count}
+                    hasPlan={hasPlan}
+                    onOpen={() => setSubjectId(s.id)}
+                    onRedoIncorrect={() => {
+                      setSubjectId(s.id);
+                      setTopicId(ALL_TOPICS);
+                      setOnly('incorrect');
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
-                  return (
-                    <div
-                      key={b.id ?? 'other'}
-                      className="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md transition-shadow flex flex-col"
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <h2 className="text-base font-semibold text-slate-900 leading-snug">{b.title}</h2>
-                        {complete ? (
-                          <span className="shrink-0 flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                            <CheckCircle2 className="w-3 h-3" /> Completed
-                          </span>
-                        ) : isFree ? (
-                          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            <Sparkles className="w-3 h-3 text-amber-600" /> Free sample
-                          </span>
-                        ) : !hasAccess ? (
-                          <span className="shrink-0 flex items-center gap-1 px-2.5 py-0.5 text-xs font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                            <Lock className="w-3 h-3 text-slate-400" /> Unlock
-                          </span>
-                        ) : null}
-                      </div>
+  // ── Topic picker (inside one subject) ────────────────────────────────────────
+  if (subjectId !== null && topicId === null) {
+    const subjectSummary = subjectTopics?.subject;
 
-                      <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
-                        <span className="flex items-center gap-1.5">
-                          <Layers className="w-4 h-4" /> {b.question_count} questions
-                        </span>
-                        {done > 0 && <span className="tabular-nums">{done} answered</span>}
-                      </div>
+    return (
+      <DashboardLayout active="qbank">
+        {showingSamples && <SampleBanner count={samples.qbank} noun="questions" />}
+        <div className="min-h-full bg-slate-50 py-6 px-4">
+          <div className="max-w-5xl mx-auto">
+            <button
+              onClick={() => setSubjectId(null)}
+              className="mb-4 flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              All subjects
+            </button>
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-slate-900">{subjectName}</h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Practise the whole subject, or narrow it down to one topic.
+              </p>
+            </div>
 
-                      {done > 0 && (
-                        <div className="mb-5">
-                          <div className="w-full bg-slate-100 rounded-full h-1.5">
-                            <div
-                              className="bg-brand-blue h-1.5 rounded-full transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {hasAccess ? (
-                        <button
-                          onClick={() => setBatchId(b.id)}
-                          className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
-                        >
-                          {done > 0 && !complete ? 'Continue' : done > 0 ? 'Practise again' : 'Start practising'}
-                          <ArrowRight className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <Link
-                          to="/pricing"
-                          className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-violet-50 py-2.5 text-sm font-bold text-violet-700 transition-colors hover:bg-violet-100"
-                        >
-                          <Lock className="h-4 w-4" />
-                          Unlock with a plan
-                        </Link>
-                      )}
-                    </div>
-                  );
-                })}
+            {!subjectTopics ? (
+              <div className="p-16 text-center">
+                <div className="w-7 h-7 border-4 border-brand-blue border-t-transparent rounded-full animate-spin mx-auto" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {subjectSummary && (
+                  <SubjectCard
+                    title={`All of ${subjectName}`}
+                    subtitle="Every topic in this subject"
+                    total={subjectSummary.question_count}
+                    available={subjectSummary.available_count}
+                    answered={subjectSummary.answered_count}
+                    correct={subjectSummary.correct_count}
+                    hasPlan={hasPlan}
+                    onOpen={() => setTopicId(ALL_TOPICS)}
+                    onRedoIncorrect={() => {
+                      setTopicId(ALL_TOPICS);
+                      setOnly('incorrect');
+                    }}
+                  />
+                )}
+                {subjectTopics.topics.map((t) => (
+                  <SubjectCard
+                    key={t.id}
+                    title={t.name}
+                    total={t.question_count}
+                    available={t.available_count}
+                    answered={t.answered_count}
+                    correct={t.correct_count}
+                    hasPlan={hasPlan}
+                    onOpen={() => setTopicId(t.id)}
+                    onRedoIncorrect={() => {
+                      setTopicId(t.id);
+                      setOnly('incorrect');
+                    }}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -311,7 +563,7 @@ export const QBank = () => {
           <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
             <div>
               <h1 className="text-sm font-bold text-slate-900">Question Bank</h1>
-              <p className="text-xs text-slate-400">{total} questions</p>
+              <p className="text-xs text-slate-400">{practiceName} · {questionIds.length} questions</p>
             </div>
             {(score.correct + score.wrong) > 0 && (
               <span className="text-xs font-medium text-slate-500">
@@ -322,41 +574,46 @@ export const QBank = () => {
             )}
           </div>
 
-          {/* Which set is open, and the way back */}
-          {batches.length > 0 && (
-            <div className="bg-white border-b border-slate-200 px-3 md:px-5 py-2.5 flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setBatchId(null);
-                  setQuestions([]);
-                  setCurrentIdx(0);
-                  setSelectedId(null);
-                  setChecked(false);
-                  setCheckResult(null);
-                  setResuming(false);
-                  setConfirmReset(false);
-                }}
-                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                All question sets
-              </button>
-              <span className="w-px h-4 bg-slate-200" />
-              <span className="text-xs font-semibold text-slate-700 truncate">
-                {batches.find((b) => b.id === batchId)?.title ?? 'Question Bank'}
-              </span>
-            </div>
-          )}
+          {/* Which subject is open, and the way back */}
+          <div className="bg-white border-b border-slate-200 px-3 md:px-5 py-2.5 flex items-center gap-3">
+            <button
+              onClick={() => {
+                // Back one level: to the topics of this subject, or to the
+                // subject list when practising the whole bank.
+                if (isAllSubjects) setSubjectId(null);
+                setTopicId(null);
+                setOnly(null);
+                setQuestionIds([]);
+                setQuestionsById({});
+                setCurrentIdx(0);
+                setSelectedId(null);
+                setChecked(false);
+                setCheckResult(null);
+                setResuming(false);
+                setConfirmReset(false);
+              }}
+              className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {isAllSubjects ? 'All subjects' : subjectName}
+            </button>
+            <span className="w-px h-4 bg-slate-200" />
+            <span className="text-xs font-semibold text-slate-700 truncate">
+              {practiceName}
+            </span>
+          </div>
 
           {/* Question area */}
           <div className="flex-1 overflow-y-auto p-3 md:p-5">
-            {loading ? (
+            {loading || (questionIds.length > 0 && !q) ? (
               <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
                 <div className="w-7 h-7 border-4 border-brand-blue border-t-transparent rounded-full animate-spin mx-auto" />
               </div>
-            ) : questions.length === 0 ? (
+            ) : questionIds.length === 0 ? (
               <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100">
-                <p className="text-slate-400 text-sm">No questions in this set yet.</p>
+                <p className="text-slate-400 text-sm">
+                  {only === 'incorrect' ? 'Nothing to redo — no incorrect answers here.' : 'No questions here yet.'}
+                </p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -367,18 +624,30 @@ export const QBank = () => {
                     <p className="text-xs text-slate-600">
                       Resumed where you left off — you have answered{' '}
                       <strong className="text-slate-700">{score.correct + score.wrong}</strong> of{' '}
-                      {questions.length}.
+                      {questionIds.length}.
                     </p>
                   </div>
                 )}
 
                 <div className="px-5 pt-4 pb-3 border-b border-slate-100">
                   <div className="flex items-center justify-between mb-2 gap-3">
-                    <span className="text-xs font-medium text-slate-500">
-                      Question <strong className="text-slate-700">{currentIdx + 1}</strong> of {questions.length}
+                    <span className="flex items-center gap-3">
+                      <span className="text-xs font-medium text-slate-500">
+                        Question <strong className="text-slate-700">{currentIdx + 1}</strong> of {questionIds.length}
+                      </span>
+                      <button
+                        onClick={() => toggleBookmark(q.id)}
+                        className={`flex items-center gap-1 text-[11px] font-medium transition-colors ${
+                          bookmarkedIds.has(q.id) ? 'text-amber-600' : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                        title={bookmarkedIds.has(q.id) ? 'Remove bookmark' : 'Bookmark this question'}
+                      >
+                        <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(q.id) ? 'fill-current' : ''}`} />
+                        {bookmarkedIds.has(q.id) ? 'Bookmarked' : 'Bookmark'}
+                      </button>
                     </span>
 
-                    {(score.correct + score.wrong) > 0 && (
+                    {!only && (score.correct + score.wrong) > 0 && (
                       confirmReset ? (
                         <span className="flex items-center gap-2">
                           <span className="text-[11px] text-slate-500">Clear your answers?</span>
@@ -412,7 +681,7 @@ export const QBank = () => {
                   <div className="w-full bg-slate-100 rounded-full h-1">
                     <div
                       className="bg-brand-blue h-1 rounded-full transition-all duration-500"
-                      style={{ width: `${((currentIdx + 1) / questions.length) * 100}%` }}
+                      style={{ width: `${((currentIdx + 1) / questionIds.length) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -585,7 +854,7 @@ export const QBank = () => {
 
                     <button
                       onClick={() => go(1)}
-                      disabled={!checked || currentIdx === questions.length - 1}
+                      disabled={!checked || currentIdx === questionIds.length - 1}
                       className="px-5 py-2 text-sm font-semibold bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
                     >
                       Next Question
@@ -593,7 +862,7 @@ export const QBank = () => {
 
                     <button
                       onClick={() => go(1)}
-                      disabled={currentIdx === questions.length - 1}
+                      disabled={currentIdx === questionIds.length - 1}
                       className="flex items-center gap-1 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       Skip <ChevronRight className="w-4 h-4" />

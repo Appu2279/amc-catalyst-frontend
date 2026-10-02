@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useSpring, useTransform } from 'framer-motion';
 import {
-  CheckCircle2, XCircle, Timer, BookOpen, Lightbulb, Bookmark, RotateCcw, Save, ClipboardList, Target,
+  CheckCircle2, XCircle, Timer, BookOpen, Lightbulb, Bookmark, RotateCcw, Save, ClipboardList, Target, FileText,
 } from 'lucide-react';
+import { Glow, GLOW } from '@/components/ui/Glow';
 
 /*
- * The hero "plays" each way of practising on the platform in turn —
+ * The hero "plays" each way of studying on the platform in turn — Notes,
  * Recall, QBank, then a Mock exam — as a looping demo on one card. The
- * questions are illustrative samples, not taken from the question bank.
+ * content is illustrative, not taken from the notes or question bank.
  * Each mode is a short sequence of steps (one every STEP_MS); when a mode's
  * sequence ends the card moves on to the next mode. Visitors can also pick a
  * mode with the tabs. Reduced-motion visitors see the same demo with fades in
@@ -17,6 +18,7 @@ import {
 const STEP_MS = 900;
 
 export const MODES = [
+  { id: 'notes', label: 'Notes', icon: FileText, steps: 8 },
   { id: 'recall', label: 'Recall', icon: ClipboardList, steps: 9 },
   { id: 'qbank', label: 'QBank', icon: BookOpen, steps: 10 },
   { id: 'mock', label: 'Mock exam', icon: Target, steps: 10 },
@@ -31,6 +33,80 @@ const CardHeader = ({ label, right }) => (
     {right}
   </div>
 );
+
+// ── Notes: a page of high-yield notes, key facts highlighted one by one ────
+// Pairs with the Recall question (inferior STEMI → RCA).
+const NOTES = {
+  title: 'Acute coronary syndromes',
+  section: 'STEMI territories',
+  facts: [
+    { lead: 'Inferior (II, III, aVF)', point: 'usually the right coronary artery' },
+    { lead: 'Anterior (V1–V4)', point: 'left anterior descending' },
+    { lead: 'Lateral (I, aVL, V5–V6)', point: 'left circumflex' },
+  ],
+};
+
+const NotesCard = ({ step, reduce }) => {
+  // step 1-3 highlight each fact in turn; from 4 the summary box shows.
+  const highlighted = Math.min(step, NOTES.facts.length);
+  const summary = step >= 4;
+  return (
+    <>
+      <CardHeader
+        label="Notes · Cardiology"
+        right={
+          <span className="flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-xs font-bold text-brand-blue">
+            <FileText className="w-3 h-3" /> High-yield
+          </span>
+        }
+      />
+      <p className="text-lg font-black text-slate-900 leading-tight">{NOTES.title}</p>
+      <p className="mt-3 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{NOTES.section}</p>
+      <ul className="space-y-2.5">
+        {NOTES.facts.map((fact, i) => (
+          <li key={fact.lead} className="text-sm leading-snug text-slate-700">
+            <span className="font-bold text-slate-900">{fact.lead}</span> →{' '}
+            {/* Marker-pen highlight sweeps in behind the key point. Drawn as
+                the text's own background (cloned per line), so it follows the
+                phrase when it wraps; reduced-motion visitors get a fade. */}
+            <motion.span
+              className="rounded px-0.5 [box-decoration-break:clone] [-webkit-box-decoration-break:clone]"
+              style={reduce ? undefined : {
+                backgroundImage: 'linear-gradient(rgba(253, 230, 138, 0.9), rgba(253, 230, 138, 0.9))',
+                backgroundRepeat: 'no-repeat',
+              }}
+              initial={false}
+              animate={reduce
+                ? { backgroundColor: i < highlighted ? 'rgba(253, 230, 138, 0.9)' : 'rgba(253, 230, 138, 0)' }
+                : { backgroundSize: i < highlighted ? '100% 100%' : '0% 100%' }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+            >
+              {fact.point}
+            </motion.span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 space-y-1.5" aria-hidden="true">
+        {[92, 84, 70].map((w) => (
+          <span key={w} className="block h-2 rounded-full bg-slate-100" style={{ width: `${w}%` }} />
+        ))}
+      </div>
+      <AnimatePresence>
+        {summary && (
+          <motion.p
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 14 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden rounded-lg bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900"
+          >
+            <strong>Exam tip:</strong> match the leads to the artery — it comes up in recalls.
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 // ── Recall: walk the options, pick, mark correct, show the teaching point ──
 const RECALL = {
@@ -294,21 +370,24 @@ const MockCard = ({ step, reduce }) => {
 };
 
 // ── Playback: steps within a mode, then on to the next mode ───────────────
-export const useHeroPlayback = () => {
+export const useHeroPlayback = (active = true) => {
   // One state object so advancing the step and rolling over to the next mode
   // happen in a single pure update.
   const [{ mode, step }, setPlayback] = useState({ mode: 0, step: 0 });
 
   // Runs for reduced-motion visitors too: stepping through the demo is a
   // content change, not movement — they get fades instead of slides below.
+  // Paused (`active` false) while the hero is off-screen, so the page isn't
+  // re-rendering a demo nobody can see.
   useEffect(() => {
+    if (!active) return;
     const id = setInterval(() => {
       setPlayback(({ mode: m, step: s }) =>
         s + 1 < MODES[m].steps ? { mode: m, step: s + 1 } : { mode: (m + 1) % MODES.length, step: 0 }
       );
     }, STEP_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [active]);
 
   // Picking a tab restarts that mode's demo from the top.
   const choose = (i) => setPlayback({ mode: i, step: 0 });
@@ -322,13 +401,14 @@ const Chip = ({ className, mx, my, depth, floatDelay, reduce, children }) => {
   const y = useTransform(my, [-0.5, 0.5], [-depth, depth]);
   return (
     <motion.div style={reduce ? undefined : { x, y }} className={`absolute z-20 ${className}`} aria-hidden="true">
-      <motion.div
-        animate={reduce ? undefined : { y: [0, -8, 0] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: floatDelay }}
-        className="rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-black/30 ring-1 ring-black/5"
+      {/* Float is a CSS animation (compositor-only); a negative delay starts
+          each chip part-way through the cycle so they bob out of step. */}
+      <div
+        className="animate-float motion-reduce:animate-none rounded-2xl bg-white/95 px-4 py-3 shadow-xl shadow-black/30 ring-1 ring-black/5"
+        style={{ animationDelay: `-${floatDelay}s` }}
       >
         {children}
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
@@ -354,18 +434,18 @@ export const HeroVisual = ({ mx, my, playback }) => {
         style={reduce ? undefined : { rotateX, rotateY, transformStyle: 'preserve-3d' }}
         className="absolute inset-0 flex flex-col items-center justify-center gap-4"
       >
-        <div aria-hidden="true" className="absolute w-72 h-72 rounded-full bg-brand-violet/40 blur-3xl" />
+        <Glow className="w-72 h-72" color={GLOW.violet(0.4)} />
 
         {/* Mode tabs — real buttons, so a visitor can jump to the mode they
             care about. The highlight slides between them. */}
-        <div className="relative z-10 flex rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur" role="group" aria-label="Show a demo of">
+        <div className="relative z-10 flex rounded-full bg-white/10 p-1 ring-1 ring-white/15" role="group" aria-label="Show a demo of">
           {MODES.map(({ id, label, icon: Icon }, i) => (
             <button
               key={id}
               type="button"
               onClick={() => choose(i)}
               aria-pressed={mode === i}
-              className="relative flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-bold text-white cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+              className="relative flex items-center gap-1.5 rounded-full px-2.5 sm:px-3.5 py-2 text-sm font-bold text-white whitespace-nowrap cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
             >
               {mode === i && (
                 <motion.span
@@ -374,7 +454,7 @@ export const HeroVisual = ({ mx, my, playback }) => {
                   transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                 />
               )}
-              <Icon className="relative w-4 h-4" aria-hidden="true" />
+              <Icon className="relative hidden sm:block w-4 h-4" aria-hidden="true" />
               <span className="relative">{label}</span>
             </button>
           ))}
@@ -396,6 +476,7 @@ export const HeroVisual = ({ mx, my, playback }) => {
                 exit={reduce ? { opacity: 0 } : { opacity: 0, x: -24 }}
                 transition={{ duration: 0.3 }}
               >
+                {current.id === 'notes' && <NotesCard step={step} reduce={reduce} />}
                 {current.id === 'recall' && <RecallCard step={step} />}
                 {current.id === 'qbank' && <QBankCard step={step} />}
                 {current.id === 'mock' && <MockCard step={step} reduce={reduce} />}

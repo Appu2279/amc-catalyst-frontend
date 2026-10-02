@@ -28,6 +28,56 @@
   @keyframes shimmer {
     to { transform: translateX(100%); }
   }
+
+  /* Decorative loops run as CSS (transform/opacity only) so the browser can
+     animate them on the compositor, off the main thread. They used to be
+     JS-driven framer-motion loops, which restyled and repainted every frame
+     and made scrolling stutter on phones. Same timings as before. */
+  --animate-drift-1: drift-1 16s ease-in-out infinite;
+  --animate-drift-2: drift-2 18s ease-in-out infinite;
+  --animate-drift-3: drift-3 14s ease-in-out infinite;
+  --animate-glow-pulse: glow-pulse 8s ease-in-out infinite;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-float-sm: float-sm 3s ease-in-out infinite;
+  --animate-swing: swing 1.8s ease-in-out infinite alternate;
+  --animate-tag-sway: tag-sway 6s ease-in-out infinite;
+  --animate-timer: timer 12s linear infinite;
+  --animate-wiggle: wiggle 2.4s ease-in-out infinite;
+  --animate-fly-across: fly-across 22s linear infinite;
+
+  @keyframes drift-1 { 50% { transform: translate3d(80px, 40px, 0); } }
+  @keyframes drift-2 { 50% { transform: translate3d(-60px, -50px, 0); } }
+  @keyframes drift-3 { 50% { transform: translate3d(50px, -30px, 0); } }
+  @keyframes glow-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 0.9; }
+  }
+  @keyframes float { 50% { transform: translate3d(0, -8px, 0); } }
+  @keyframes float-sm { 50% { transform: translate3d(0, -6px, 0); } }
+  @keyframes swing {
+    from { transform: rotate(-5deg); }
+    to { transform: rotate(5deg); }
+  }
+  @keyframes tag-sway {
+    0%, 100% { transform: rotate(0deg) rotateY(0deg); }
+    20% { transform: rotate(7deg) rotateY(22deg); }
+    40% { transform: rotate(-5deg) rotateY(0deg); }
+    60% { transform: rotate(3deg) rotateY(-22deg); }
+    80% { transform: rotate(-2deg) rotateY(0deg); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-6deg) scale(1); }
+    50% { transform: rotate(-2deg) scale(1.04); }
+  }
+  @keyframes fly-across {
+    from { transform: translate3d(-20vw, 12px, 0); }
+    to { transform: translate3d(110vw, -18px, 0); }
+  }
+  /* --dash-end is set inline to 95% of the ring's circumference */
+  @keyframes timer {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: var(--dash-end); }
+  }
 }
 
 :root {
@@ -231,6 +281,11 @@ body {
   }
   :where(.dark) .bg-white\/90:not(:where(.theme-fixed *)) {
     background-color: color-mix(in oklab, var(--surface) 90%, transparent);
+  }
+  @media (pointer: coarse) {
+    :where(.dark) .pointer-coarse\:bg-white:not(:where(.theme-fixed *)) {
+      background-color: var(--surface);
+    }
   }
   :where(.dark) .from-white:not(:where(.theme-fixed *)) { --tw-gradient-from: var(--surface); }
   :where(.dark) .via-white:not(:where(.theme-fixed *)) { --tw-gradient-via: var(--surface); }

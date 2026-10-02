@@ -22,8 +22,12 @@ export const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  // Touch screens (phones and tablets, either orientation) get a solid bar
+  // with no backdrop blur: blurring the page behind a fixed bar is recomputed
+  // every frame while animated content scrolls under it, which made scrolling
+  // stutter. Computers with a mouse keep the frosted glass.
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md pointer-coarse:bg-white pointer-coarse:backdrop-blur-none border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 h-20">
           {/* Logo */}

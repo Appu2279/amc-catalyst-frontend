@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { getCourses, getPricingConfig } from '../api/courseService';
 import { useAuth } from '@/context/AuthContext';
 import { AMCNotesIndex } from '@/components/AMCNotesIndex';
+import { CourseAnnouncement } from '@/components/CourseAnnouncement';
 import { EarlyBirdTag } from '@/components/EarlyBirdTag';
 
 // Static supporting copy from the client's sheet — presentation only, so it is
@@ -255,6 +256,9 @@ export const Pricing = () => {
             </div>
           ))}
         </div>
+
+        {/* Upcoming 2027 course — an announcement, not a plan on sale */}
+        <CourseAnnouncement />
 
         {/* Complete Notes Index Showcase */}
         <div className="mt-16 pt-12 border-t border-slate-200">

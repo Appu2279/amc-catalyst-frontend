@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { FileText, BarChart3, Target, Users, CalendarDays, Globe2, ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -29,11 +29,14 @@ const formatClock = (totalSeconds) => {
  */
 const MockExamLaptop = () => {
   const shouldReduceMotion = useReducedMotion();
+  const ref = useRef(null);
+  // Only tick while on screen — no point re-rendering a demo nobody sees.
+  const inView = useInView(ref);
   const [secondsLeft, setSecondsLeft] = useState(EXAM_SECONDS);
   const [selectedOption, setSelectedOption] = useState(null);
 
   useEffect(() => {
-    if (shouldReduceMotion) return undefined;
+    if (shouldReduceMotion || !inView) return undefined;
     const clock = setInterval(() => setSecondsLeft((s) => (s > 0 ? s - 1 : EXAM_SECONDS)), 1000);
     // Cycle: nothing picked, then B, then change of mind to D.
     const picks = [null, 1, 3];
@@ -43,10 +46,10 @@ const MockExamLaptop = () => {
       setSelectedOption(picks[step]);
     }, 1600);
     return () => { clearInterval(clock); clearInterval(picker); };
-  }, [shouldReduceMotion]);
+  }, [shouldReduceMotion, inView]);
 
   return (
-    <div className="relative mx-auto w-full max-w-md">
+    <div ref={ref} className="relative mx-auto w-full max-w-md">
       {/* Screen */}
       <div className="rounded-t-2xl border-[10px] border-b-[14px] border-slate-800 bg-slate-800 shadow-2xl">
         <div className="rounded-md bg-white p-4 md:p-5">
@@ -87,17 +90,14 @@ const MockExamLaptop = () => {
       <div className="mx-auto h-3 w-[112%] -translate-x-[5.5%] rounded-b-xl bg-gradient-to-b from-slate-300 to-slate-400 shadow-lg" />
 
       {/* Floating badge — the date already has its own strip beside this */}
-      <motion.div
-        className="absolute -top-5 -right-3 md:-right-8 flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 shadow-lg"
-        animate={shouldReduceMotion ? {} : { y: [0, -6, 0] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      >
+      {/* CSS float (compositor-only) */}
+      <div className="absolute -top-5 -right-3 md:-right-8 flex items-center gap-2 rounded-xl border border-amber-200 bg-white px-3 py-2 shadow-lg animate-float-sm motion-reduce:animate-none">
         <Sparkles className="h-5 w-5 text-brand-gold" />
         <div className="leading-tight">
           <p className="text-sm font-black text-brand-dark">100% Free</p>
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Just log in</p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

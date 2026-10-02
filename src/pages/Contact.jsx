@@ -70,7 +70,7 @@ export const Contact = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 mb-6 text-xs font-bold text-amber-300">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md pointer-coarse:backdrop-blur-none border border-white/15 mb-6 text-xs font-bold text-amber-300">
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span>We're Here For Your AMC Journey</span>
             </div>

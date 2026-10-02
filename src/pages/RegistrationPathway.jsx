@@ -255,14 +255,14 @@ export const RegistrationPathway = () => (
           <div className="absolute bottom-0 left-1/4 w-56 h-56 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <span className="relative z-10 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-300 mb-3">
-            <Workflow className="w-3.5 h-3.5" /> Registration
+            <Workflow className="w-3.5 h-3.5" /> Pathway guide
           </span>
           <h1 className="relative z-10 text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight">
-            The AMC registration pathway
+            Your guide to practising in Australia
           </h1>
           <p className="relative z-10 text-slate-300 text-xs sm:text-sm font-medium mt-2 max-w-2xl">
-            Four routes to AMC registration, from your first qualification check to a final
-            registration outcome. Follow one colour from top to bottom to trace a single pathway.
+            The four routes from your first qualification check to working as a doctor in
+            Australia. Follow one colour from top to bottom to trace a single pathway.
           </p>
         </div>
 

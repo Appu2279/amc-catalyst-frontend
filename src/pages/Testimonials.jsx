@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, BadgeCheck, Quote, Sparkles, Trophy } from 'lucide-react';
 import { RESULTS, TESTIMONIALS } from '@/content/testimonials';
 import { ResultCard, TestimonialCard } from '@/components/home/Testimonials';
+import { Glow, GLOW } from '@/components/ui/Glow';
 
 const FOCUS_RING = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300';
 
@@ -12,16 +13,8 @@ const Hero = () => {
   return (
     <section className="theme-fixed relative overflow-hidden bg-slate-950 pt-32 pb-20 lg:pt-40 lg:pb-28">
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-        <motion.div
-          className="absolute -top-40 left-1/4 w-[34rem] h-[34rem] rounded-full bg-brand-violet/40 blur-[120px]"
-          animate={reduce ? undefined : { x: [0, 60, 0], y: [0, 30, 0] }}
-          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute -bottom-40 right-1/4 w-[30rem] h-[30rem] rounded-full bg-brand-gold/25 blur-[120px]"
-          animate={reduce ? undefined : { x: [0, -50, 0] }}
-          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        />
+        <Glow className="-top-40 left-1/4 w-[34rem] h-[34rem]" color={GLOW.violet(0.4)} animation="animate-drift-1" />
+        <Glow className="-bottom-40 right-1/4 w-[30rem] h-[30rem]" color={GLOW.gold(0.25)} animation="animate-drift-2" />
       </div>
 
       <div className="relative max-w-5xl mx-auto px-6 lg:px-8 text-center">
@@ -169,7 +162,7 @@ export const Testimonials = () => {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="theme-fixed relative max-w-5xl mx-auto overflow-hidden rounded-[2.5rem] bg-slate-950 px-6 py-16 md:py-20 text-center"
         >
-          <div aria-hidden="true" className="absolute -top-24 left-1/3 w-96 h-96 rounded-full bg-brand-violet/50 blur-[100px]" />
+          <Glow className="-top-24 left-1/3 w-96 h-96" color={GLOW.violet(0.5)} />
           <div className="relative">
             <Sparkles className="mx-auto mb-5 w-8 h-8 text-amber-300" aria-hidden="true" />
             <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white text-balance">

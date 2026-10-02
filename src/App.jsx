@@ -124,7 +124,9 @@ export const App = () => (
             <Route path="/notes" element={<Notes />} />
             <Route path="/recall" element={<Recall />} />
             <Route path="/mock-exam" element={<MockExam />} />
-            <Route path="/registration-pathway" element={<RegistrationPathway />} />
+            <Route path="/pathway-guide" element={<RegistrationPathway />} />
+            {/* Old address, kept so existing links and bookmarks still work. */}
+            <Route path="/registration-pathway" element={<Navigate to="/pathway-guide" replace />} />
             <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
             <Route path="/mock-exam/:testId/result/:attemptId"  element={<MockExamResult />} />
 

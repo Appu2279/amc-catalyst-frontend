@@ -10,8 +10,8 @@ import {
  * questions are illustrative samples, not taken from the question bank.
  * Each mode is a short sequence of steps (one every STEP_MS); when a mode's
  * sequence ends the card moves on to the next mode. Visitors can also pick a
- * mode with the tabs. Reduced-motion visitors get each mode's finished state
- * and no auto-cycling.
+ * mode with the tabs. Reduced-motion visitors see the same demo with fades in
+ * place of slides, flips and tilt.
  */
 
 const STEP_MS = 900;
@@ -21,8 +21,6 @@ export const MODES = [
   { id: 'qbank', label: 'QBank', icon: BookOpen, steps: 10 },
   { id: 'mock', label: 'Mock exam', icon: Target, steps: 10 },
 ];
-// The step each mode shows when it isn't animating (its "finished" frame).
-const STILL_STEP = { recall: 6, qbank: 7, mock: 7 };
 
 const optionBase = 'flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors duration-300';
 const letterBase = 'w-5 h-5 shrink-0 rounded-full text-[11px] font-bold flex items-center justify-center';
@@ -200,7 +198,7 @@ const MockResult = ({ reduce }) => {
   const c = 2 * Math.PI * r;
   return (
     <motion.div
-      initial={reduce ? false : { opacity: 0, rotateY: -90 }}
+      initial={reduce ? { opacity: 0 } : { opacity: 0, rotateY: -90 }}
       animate={{ opacity: 1, rotateY: 0 }}
       transition={{ duration: 0.45, ease: 'easeOut' }}
       className="text-center min-h-[380px] flex flex-col justify-center"
@@ -242,7 +240,7 @@ const MockResult = ({ reduce }) => {
 };
 
 const MockCard = ({ step, reduce }) => {
-  const time = useCountdown(2 * 3600 + 41 * 60 + 18, !reduce);
+  const time = useCountdown(2 * 3600 + 41 * 60 + 18, true);
   const hovered = step === 1 ? MOCK.picked : null;
   const picked = step >= 2;
   const saved = step >= 3;
@@ -297,24 +295,24 @@ const MockCard = ({ step, reduce }) => {
 
 // ── Playback: steps within a mode, then on to the next mode ───────────────
 export const useHeroPlayback = () => {
-  const reduce = useReducedMotion();
   // One state object so advancing the step and rolling over to the next mode
   // happen in a single pure update.
   const [{ mode, step }, setPlayback] = useState({ mode: 0, step: 0 });
 
+  // Runs for reduced-motion visitors too: stepping through the demo is a
+  // content change, not movement — they get fades instead of slides below.
   useEffect(() => {
-    if (reduce) return;
     const id = setInterval(() => {
       setPlayback(({ mode: m, step: s }) =>
         s + 1 < MODES[m].steps ? { mode: m, step: s + 1 } : { mode: (m + 1) % MODES.length, step: 0 }
       );
     }, STEP_MS);
     return () => clearInterval(id);
-  }, [reduce]);
+  }, []);
 
   // Picking a tab restarts that mode's demo from the top.
   const choose = (i) => setPlayback({ mode: i, step: 0 });
-  return { mode, step: reduce ? STILL_STEP[MODES[mode].id] : step, choose };
+  return { mode, step, choose };
 };
 
 // Small floating glass chip. `depth` scales how far it drifts with the
@@ -383,7 +381,7 @@ export const HeroVisual = ({ mx, my, playback }) => {
         </div>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 40, rotate: -4 }}
+          initial={reduce ? { opacity: 0, rotate: -1.5 } : { opacity: 0, y: 40, rotate: -4 }}
           animate={{ opacity: 1, y: 0, rotate: -1.5 }}
           transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="relative z-10"
@@ -393,9 +391,9 @@ export const HeroVisual = ({ mx, my, playback }) => {
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={current.id}
-                initial={reduce ? false : { opacity: 0, x: 24 }}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, x: 24 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={reduce ? undefined : { opacity: 0, x: -24 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, x: -24 }}
                 transition={{ duration: 0.3 }}
               >
                 {current.id === 'recall' && <RecallCard step={step} />}

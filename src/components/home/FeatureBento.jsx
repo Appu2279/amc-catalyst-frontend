@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
-  ClipboardList, FileText, Target, BookOpen, Clock3, ArrowRight, Users,
+  ClipboardList, FileText, Target, BookOpen, ArrowRight, Users,
   ChevronLeft, ChevronRight, Pause, Play,
 } from 'lucide-react';
 import { ProtectedImage } from '@/components/ProtectedImage';
@@ -63,11 +63,12 @@ const RECALL_SAMPLES = [
 const RecallDeck = () => {
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(0);
+  // Shuffles for reduced-motion visitors too, but as a fade: cards snap to
+  // their place in the stack instead of sliding there.
   useEffect(() => {
-    if (reduce) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % RECALL_SAMPLES.length), 2600);
     return () => clearInterval(id);
-  }, [reduce]);
+  }, []);
 
   return (
     <div className="relative mt-auto h-80 rounded-2xl bg-gradient-to-br from-violet-50 via-white to-blue-50 border border-slate-100 p-5 sm:p-8" aria-hidden="true">
@@ -81,10 +82,12 @@ const RecallDeck = () => {
           return (
             <motion.div
               key={item.q}
-              initial={{ opacity: 0, y: 40, scale: 0.9 }}
+              initial={reduce ? { opacity: 0, y: depth * 16, scale: 1 - depth * 0.05 } : { opacity: 0, y: 40, scale: 0.9 }}
               animate={{ opacity: 1 - depth * 0.3, y: depth * 16, scale: 1 - depth * 0.05, zIndex: 3 - depth }}
-              exit={{ opacity: 0, y: -30, scale: 1.02 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -30, scale: 1.02 }}
+              transition={reduce
+                ? { duration: 0.4, y: { duration: 0 }, scale: { duration: 0 } }
+                : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-x-0 top-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg"
             >
               <span className="text-xs font-bold uppercase tracking-wider text-brand-violet">{item.subject}</span>
@@ -299,16 +302,37 @@ const MockTimer = () => {
   );
 };
 
-// ── QBank (coming soon): skeleton rows shimmering ──────────────────────────
-const QBankSkeleton = () => (
-  <div className="mt-auto space-y-2.5" aria-hidden="true">
-    {[92, 76, 84].map((w) => (
-      <div key={w} className="relative h-3 rounded-full bg-slate-100 overflow-hidden" style={{ width: `${w}%` }}>
-        <span className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-brand-violet/25 to-transparent motion-reduce:animate-none" />
-      </div>
-    ))}
-  </div>
-);
+// ── QBank: per-subject progress bars filling in (illustrative) ─────────────
+const QBANK_SUBJECTS = [
+  { name: 'Medicine', pct: 72 },
+  { name: 'Surgery', pct: 48 },
+  { name: 'Paediatrics', pct: 61 },
+];
+
+const QBankProgress = () => {
+  const reduce = useReducedMotion();
+  return (
+    <div className="mt-auto space-y-3" aria-hidden="true">
+      {QBANK_SUBJECTS.map(({ name, pct }, i) => (
+        <div key={name}>
+          <div className="flex justify-between text-xs font-semibold text-slate-600 mb-1">
+            <span>{name}</span>
+            <span className="tabular-nums">{pct}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-brand-violet"
+              initial={{ width: reduce ? `${pct}%` : '0%' }}
+              whileInView={{ width: `${pct}%` }}
+              viewport={{ once: true }}
+              transition={{ duration: 1, delay: 0.15 * i, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const FeatureBento = () => (
   <section className="py-20 lg:py-28">
@@ -358,12 +382,12 @@ export const FeatureBento = () => (
             title="Adaptive QBank"
             desc="Subject-wise MCQs that adapt to you."
             badge={
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                <Clock3 className="w-3.5 h-3.5" aria-hidden="true" /> Soon
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse motion-reduce:animate-none" aria-hidden="true" /> Live
               </span>
             }
           />
-          <QBankSkeleton />
+          <QBankProgress />
         </SpotlightCard>
       </div>
 

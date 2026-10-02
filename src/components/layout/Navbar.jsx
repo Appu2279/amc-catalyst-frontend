@@ -25,23 +25,25 @@ export const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+        <div className="flex items-center justify-between gap-4 h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center group">
-            <div className="">
+            {/* Hidden on tablets (md, below lg): the full link row leaves no
+                room there and the logo was being squashed. */}
+            <div className="md:hidden lg:block">
               <img
                 src="/images/logo.png"
                 alt="AMC Catalyst Logo"
                 className="w-20 h-20 dark:bg-white dark:rounded-2xl dark:scale-75"
               />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold">
+            <span className="whitespace-nowrap text-xl md:text-lg lg:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold">
               AMC CATALYST
             </span>
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-3 lg:space-x-8">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
@@ -59,7 +61,7 @@ export const Navbar = () => {
           </div>
 
           {/* Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-4 whitespace-nowrap">
             <ThemeToggle />
             {isAuthenticated ? (
               <>

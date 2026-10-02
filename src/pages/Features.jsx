@@ -9,8 +9,7 @@ export const Features = () => {
       icon: <BookOpen className="w-5 h-5" />,
       title: "Adaptive QBank (MCQs)",
       description: "1 year of recall questions tailored to the latest AMC CAT blueprint with detailed Australian guideline references.",
-      color: "var(--color-brand-violet)",
-      comingSoon: true
+      color: "var(--color-brand-violet)"
     },
     {
       icon: <FileText className="w-5 h-5" />,

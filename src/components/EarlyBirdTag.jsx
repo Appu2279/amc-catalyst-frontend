@@ -14,7 +14,7 @@ export const EarlyBirdTag = ({ stringHeight = 40, className = '' }) => {
   const shouldReduceMotion = useReducedMotion();
 
   return (
-    <div className={`flex-col items-center [perspective:600px] ${className}`} aria-label="Early Bird offer ends soon">
+    <div className={`theme-fixed flex-col items-center [perspective:600px] ${className}`} aria-label="Early Bird offer ends soon">
       <motion.div
         className="flex flex-col items-center"
         style={{ transformOrigin: 'top center' }}

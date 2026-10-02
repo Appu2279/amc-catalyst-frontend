@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ThemeProvider, ThemeArea } from '@/context/ThemeContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -9,7 +10,7 @@ import { captureReferralFromSearch } from '@/lib/referral';
 
 // Public pages
 import { Home } from '@/pages/Home';
-import { About } from '@/pages/About';
+import { Testimonials } from '@/pages/Testimonials';
 import { Features } from '@/pages/Features';
 import { Pricing } from '@/pages/Pricing';
 import { Contact } from '@/pages/Contact';
@@ -45,11 +46,13 @@ import { LegalPage } from '@/pages/LegalPage';
 import { TERMS, PRIVACY } from '@/content/legal';
 
 const PublicLayout = ({ children }) => (
-  <div className="flex flex-col min-h-screen">
-    <Navbar />
-    <main className="grow">{children}</main>
-    <Footer />
-  </div>
+  <ThemeArea>
+    <div className="flex flex-col min-h-screen">
+      <Navbar />
+      <main className="grow">{children}</main>
+      <Footer />
+    </div>
+  </ThemeArea>
 );
 
 const ScrollToTop = () => {
@@ -68,7 +71,7 @@ const ReferralCapture = () => {
 const AuthRoute = ({ children }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   if (isLoading) return null;
-  if (!isAuthenticated) return children;
+  if (!isAuthenticated) return <ThemeArea>{children}</ThemeArea>;
   return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
 };
 
@@ -85,64 +88,68 @@ const NoContextMenu = () => {
 export const App = () => (
   <BrowserRouter>
     <AuthProvider>
-      <NoContextMenu />
-      <ScrollToTop />
-      <ReferralCapture />
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-        <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-        <Route path="/features" element={<PublicLayout><Features /></PublicLayout>} />
-        <Route path="/pricing" element={<PublicLayout><Pricing /></PublicLayout>} />
-        <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+      <ThemeProvider>
+        <NoContextMenu />
+        <ScrollToTop />
+        <ReferralCapture />
+        <Routes>
+          {/* Public */}
+          <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
+          <Route path="/testimonials" element={<PublicLayout><Testimonials /></PublicLayout>} />
+          {/* The About page was replaced by Testimonials; old links land there. */}
+          <Route path="/about" element={<Navigate to="/testimonials" replace />} />
+          <Route path="/features" element={<PublicLayout><Features /></PublicLayout>} />
+          <Route path="/pricing" element={<PublicLayout><Pricing /></PublicLayout>} />
+          <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
 
-        {/* Legal — linked from the footer, the register consent line, and each
-            other. Public on purpose: a visitor must be able to read the terms
-            before creating an account. */}
-        <Route path="/terms" element={<PublicLayout><LegalPage doc={TERMS} /></PublicLayout>} />
-        <Route path="/privacy" element={<PublicLayout><LegalPage doc={PRIVACY} /></PublicLayout>} />
+          {/* Legal — linked from the footer, the register consent line, and each
+              other. Public on purpose: a visitor must be able to read the terms
+              before creating an account. */}
+          <Route path="/terms" element={<PublicLayout><LegalPage doc={TERMS} /></PublicLayout>} />
+          <Route path="/privacy" element={<PublicLayout><LegalPage doc={PRIVACY} /></PublicLayout>} />
 
-        {/* Auth */}
-        {/* Pre-registration launch: no Log In button links here any more, but the route
-            stays reachable by direct URL so the team can still get into /admin, and so
-            the 401 handler and ProtectedRoute have somewhere to redirect to. */}
-        <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
-        <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
-        <Route path="/registration-success" element={<RegistrationSuccess />} />
+          {/* Auth */}
+          {/* Pre-registration launch: no Log In button links here any more, but the route
+              stays reachable by direct URL so the team can still get into /admin, and so
+              the 401 handler and ProtectedRoute have somewhere to redirect to. */}
+          <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
+          <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
+          <Route path="/registration-success" element={<ThemeArea><RegistrationSuccess /></ThemeArea>} />
 
-        {/* User dashboard */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/qbank" element={<QBank />} />
-          <Route path="/notes" element={<Notes />} />
-          <Route path="/recall" element={<Recall />} />
-          <Route path="/mock-exam" element={<MockExam />} />
-          <Route path="/registration-pathway" element={<RegistrationPathway />} />
-          <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
-          <Route path="/mock-exam/:testId/result/:attemptId"  element={<MockExamResult />} />
+          {/* User dashboard */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/qbank" element={<QBank />} />
+            <Route path="/notes" element={<Notes />} />
+            <Route path="/recall" element={<Recall />} />
+            <Route path="/mock-exam" element={<MockExam />} />
+            <Route path="/registration-pathway" element={<RegistrationPathway />} />
+            <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
+            <Route path="/mock-exam/:testId/result/:attemptId"  element={<MockExamResult />} />
 
-          {/* Buying. Protected because a claim is opened against the signed-in
-              account — pricing sends a signed-out visitor through login with
-              ?next= so they arrive here with the plan they chose intact. */}
-          <Route path="/checkout/:courseId" element={<Checkout />} />
-          <Route path="/payment-submitted" element={<PaymentSubmitted />} />
-        </Route>
+            {/* Buying. Protected because a claim is opened against the signed-in
+                account — pricing sends a signed-out visitor through login with
+                ?next= so they arrive here with the plan they chose intact. */}
+            <Route path="/checkout/:courseId" element={<Checkout />} />
+            <Route path="/payment-submitted" element={<PaymentSubmitted />} />
+          </Route>
 
-        {/* Admin panel — requires role=admin */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/subjects" element={<AdminSubjects />} />
-          <Route path="/admin/questions" element={<AdminQuestions />} />
-          <Route path="/admin/import-batches" element={<AdminImportBatches />} />
-          <Route path="/admin/mock-tests" element={<AdminMockTests />} />
-          <Route path="/admin/mock-tests/:id" element={<AdminMockTestDetail />} />
-          <Route path="/admin/courses" element={<AdminCourses />} />
-          <Route path="/admin/notes" element={<AdminNotes />} />
-          <Route path="/admin/payments" element={<AdminPaymentClaims />} />
-          <Route path="/admin/referrals" element={<AdminReferrals />} />
-        </Route>
-      </Routes>
+          {/* Admin panel — requires role=admin */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/subjects" element={<AdminSubjects />} />
+            <Route path="/admin/questions" element={<AdminQuestions />} />
+            <Route path="/admin/import-batches" element={<AdminImportBatches />} />
+            <Route path="/admin/mock-tests" element={<AdminMockTests />} />
+            <Route path="/admin/mock-tests/:id" element={<AdminMockTestDetail />} />
+            <Route path="/admin/courses" element={<AdminCourses />} />
+            <Route path="/admin/notes" element={<AdminNotes />} />
+            <Route path="/admin/payments" element={<AdminPaymentClaims />} />
+            <Route path="/admin/referrals" element={<AdminReferrals />} />
+          </Route>
+        </Routes>
+      </ThemeProvider>
     </AuthProvider>
   </BrowserRouter>
 );

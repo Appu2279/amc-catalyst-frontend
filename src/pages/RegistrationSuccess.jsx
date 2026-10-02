@@ -35,7 +35,7 @@ export const RegistrationSuccess = () => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6 py-16 font-sans relative overflow-hidden">
       {/* Same dot grid as the register screen, so this reads as the next step of one flow */}
-      <div className="absolute inset-0 [background:radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-50" />
+      <div className="absolute inset-0 [background:radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-50 dark:opacity-10" />
       <div className="absolute -top-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-brand-violet/5 blur-3xl" />
 
       <motion.div

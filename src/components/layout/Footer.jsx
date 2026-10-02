@@ -4,7 +4,7 @@ import { Stethoscope, Facebook, Twitter, Instagram, Linkedin, Mail, MapPin, Phon
 
 export const Footer = () => {
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-16 pb-8">
+    <footer className="theme-fixed bg-slate-900 text-slate-300 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           
@@ -35,7 +35,7 @@ export const Footer = () => {
           <div>
             <h3 className="text-white font-semibold mb-4 text-lg">Quick Links</h3>
             <ul className="space-y-3">
-              <li><Link to="/about" className="hover:text-brand-accent transition-colors">About Us</Link></li>
+              <li><Link to="/testimonials" className="hover:text-brand-accent transition-colors">Testimonials</Link></li>
               <li><Link to="/features" className="hover:text-brand-accent transition-colors">Features</Link></li>
               <li><Link to="/pricing" className="hover:text-brand-accent transition-colors">Pricing</Link></li>
               <li><Link to="/contact" className="hover:text-brand-accent transition-colors">Contact</Link></li>

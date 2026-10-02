@@ -73,7 +73,7 @@ export const Login = () => {
 
       {/* Left Side: Branding */}
       <div className="hidden md:flex md:w-1/2 bg-slate-50 relative items-center justify-center p-12 overflow-hidden border-r border-slate-100">
-        <div className="absolute inset-0 [background:radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
+        <div className="absolute inset-0 [background:radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:32px_32px] opacity-40 dark:opacity-10" />
         <div className="relative z-10 max-w-sm text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}

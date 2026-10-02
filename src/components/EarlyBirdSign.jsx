@@ -12,7 +12,7 @@ export const EarlyBirdSign = ({ className = '' }) => {
 
   return (
     <motion.div
-      className={`flex flex-col items-center ${className}`}
+      className={`theme-fixed flex flex-col items-center ${className}`}
       style={{ transformOrigin: 'top center' }}
       initial={{ rotate: 0 }}
       animate={shouldReduceMotion ? { rotate: 0 } : { rotate: [-5, 5] }}

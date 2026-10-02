@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useReducedMotion } from 'framer-motion';
 import {
   ClipboardList, FileText, Target, BookOpen, ArrowRight, Users,
   ChevronLeft, ChevronRight, Pause, Play,
@@ -63,15 +63,18 @@ const RECALL_SAMPLES = [
 const RecallDeck = () => {
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref);
   // Shuffles for reduced-motion visitors too, but as a fade: cards snap to
-  // their place in the stack instead of sliding there.
+  // their place in the stack instead of sliding there. Paused off-screen.
   useEffect(() => {
+    if (!inView) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % RECALL_SAMPLES.length), 2600);
     return () => clearInterval(id);
-  }, []);
+  }, [inView]);
 
   return (
-    <div className="relative mt-auto h-80 rounded-2xl bg-gradient-to-br from-violet-50 via-white to-blue-50 border border-slate-100 p-5 sm:p-8" aria-hidden="true">
+    <div ref={ref} className="relative mt-auto h-80 rounded-2xl bg-gradient-to-br from-violet-50 via-white to-blue-50 border border-slate-100 p-5 sm:p-8" aria-hidden="true">
       <span className="absolute right-5 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm border border-emerald-200">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse motion-reduce:animate-none" /> Updated monthly
       </span>
@@ -162,7 +165,9 @@ const NotesShowcase = () => {
   }, []);
 
   const count = notes.length;
-  const playing = !reduce && !paused && !held && count > 1;
+  const regionRef = useRef(null);
+  const inView = useInView(regionRef);
+  const playing = !reduce && !paused && !held && inView && count > 1;
 
   useEffect(() => {
     if (!playing) return;
@@ -188,6 +193,7 @@ const NotesShowcase = () => {
       onMouseLeave={() => setHeld(false)}
       onFocus={() => setHeld(true)}
       onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setHeld(false); }}
+      ref={regionRef}
       role="region"
       aria-roledescription="carousel"
       aria-label="AMC Catalyst notes"
@@ -221,13 +227,14 @@ const NotesShowcase = () => {
             </AnimatePresence>
           </div>
 
-          {/* Progress bar refills for each note while auto-playing */}
+          {/* Progress bar refills for each note while auto-playing. Scaled
+              (transform) rather than sized (width), so it never triggers layout. */}
           <div className="mt-3 h-1 rounded-full bg-slate-100 overflow-hidden" aria-hidden="true">
             <motion.div
               key={`${index}-${playing}`}
-              className="h-full bg-brand-blue"
-              initial={{ width: playing ? '0%' : `${((index + 1) / count) * 100}%` }}
-              animate={{ width: playing ? '100%' : `${((index + 1) / count) * 100}%` }}
+              className="h-full w-full origin-left bg-brand-blue"
+              initial={{ scaleX: playing ? 0 : (index + 1) / count }}
+              animate={{ scaleX: playing ? 1 : (index + 1) / count }}
               transition={playing ? { duration: AUTO_ADVANCE_MS / 1000, ease: 'linear' } : { duration: 0.3 }}
             />
           </div>
@@ -278,20 +285,22 @@ const NotesShowcase = () => {
 
 // ── Mock exams: a countdown ring ticking down ──────────────────────────────
 const MockTimer = () => {
-  const reduce = useReducedMotion();
   const r = 42;
   const c = 2 * Math.PI * r;
+  // A stroke animation can't run on the compositor, so only run it on screen.
+  const ref = useRef(null);
+  const inView = useInView(ref);
   return (
-    <div className="relative mt-auto mx-auto w-32 h-32" aria-hidden="true">
+    <div ref={ref} className="relative mt-auto mx-auto w-32 h-32" aria-hidden="true">
       <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
         <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-slate-100" />
-        <motion.circle
+        {/* CSS animation; the inline offset is the still frame shown to
+            reduced-motion visitors (a running animation overrides it). */}
+        <circle
           cx="50" cy="50" r={r} fill="none" strokeWidth="8" strokeLinecap="round"
-          className="stroke-brand-gold"
+          className={`stroke-brand-gold ${inView ? 'animate-timer' : ''} motion-reduce:animate-none`}
           strokeDasharray={c}
-          initial={{ strokeDashoffset: reduce ? c * 0.3 : 0 }}
-          animate={reduce ? undefined : { strokeDashoffset: [0, c * 0.95] }}
-          transition={reduce ? { duration: 0 } : { duration: 12, ease: 'linear', repeat: Infinity }}
+          style={{ strokeDashoffset: c * 0.3, '--dash-end': c * 0.95 }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">

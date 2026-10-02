@@ -361,7 +361,7 @@ export const AMCNotesIndex = ({
 
         <div className="relative z-10">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-bold text-amber-300">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md pointer-coarse:backdrop-blur-none border border-white/15 text-xs font-bold text-amber-300">
               <BadgeCheck className="w-4 h-4 text-amber-400" />
               <span>{AMC_NOTES_DATA.author}</span>
             </div>
@@ -385,15 +385,15 @@ export const AMCNotesIndex = ({
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6 pt-6 border-t border-white/10">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+            <div className="bg-white/5 backdrop-blur-sm pointer-coarse:backdrop-blur-none rounded-xl p-3 border border-white/10">
               <p className="text-xs text-slate-400 font-medium">Total Resources</p>
               <p className="text-xl sm:text-2xl font-black text-amber-400">{AMC_NOTES_DATA.totalCount} Notes</p>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+            <div className="bg-white/5 backdrop-blur-sm pointer-coarse:backdrop-blur-none rounded-xl p-3 border border-white/10">
               <p className="text-xs text-slate-400 font-medium">Part 1 Modules</p>
               <p className="text-xl sm:text-2xl font-black text-amber-300">10 Core Subjects</p>
             </div>
-            <div className="col-span-2 sm:col-span-1 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+            <div className="col-span-2 sm:col-span-1 bg-white/5 backdrop-blur-sm pointer-coarse:backdrop-blur-none rounded-xl p-3 border border-white/10">
               <p className="text-xs text-slate-400 font-medium">Part 2 Modules</p>
               <p className="text-xl sm:text-2xl font-black text-violet-300">12 High-Yield Notes</p>
             </div>

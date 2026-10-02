@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
 
 // Pointed-top tag outline, the classic shop price tag.
 const TAG_SHAPE = 'polygon(50% 0, 100% 22%, 100% 100%, 0 100%, 0 22%)';
@@ -11,16 +10,10 @@ const TAG_SHAPE = 'polygon(50% 0, 100% 22%, 100% 100%, 0 100%, 0 22%)';
  * EarlyBirdSign. Decorative only; motion stops for reduced-motion visitors.
  */
 export const EarlyBirdTag = ({ stringHeight = 40, className = '' }) => {
-  const shouldReduceMotion = useReducedMotion();
-
   return (
     <div className={`theme-fixed flex-col items-center [perspective:600px] ${className}`} aria-label="Early Bird offer ends soon">
-      <motion.div
-        className="flex flex-col items-center"
-        style={{ transformOrigin: 'top center' }}
-        animate={shouldReduceMotion ? {} : { rotate: [0, 7, -5, 3, -2, 0], rotateY: [0, 22, 0, -22, 0, 0] }}
-        transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
-      >
+      {/* Sway is a CSS animation (compositor-only), pivoting on the string. */}
+      <div className="flex flex-col items-center origin-top animate-tag-sway motion-reduce:animate-none">
         <span className="w-px bg-slate-400" style={{ height: stringHeight }} />
 
         <div className="relative -mt-1 w-24 md:w-28 drop-shadow-lg">
@@ -37,7 +30,7 @@ export const EarlyBirdTag = ({ stringHeight = 40, className = '' }) => {
           {/* Eyelet the string threads through */}
           <span className="absolute top-2.5 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white ring-2 ring-brand-gold" />
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

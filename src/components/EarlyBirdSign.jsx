@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
 
 /**
  * A wooden "Early Bird ends soon" board hanging from a nail on two strings,
@@ -8,15 +7,10 @@ import { motion, useReducedMotion } from 'framer-motion';
  * origin at the top), and stops for visitors who ask for reduced motion.
  */
 export const EarlyBirdSign = ({ className = '' }) => {
-  const shouldReduceMotion = useReducedMotion();
-
+  // The swing is a CSS animation (compositor-only), pivoting on the nail.
   return (
-    <motion.div
-      className={`theme-fixed flex flex-col items-center ${className}`}
-      style={{ transformOrigin: 'top center' }}
-      initial={{ rotate: 0 }}
-      animate={shouldReduceMotion ? { rotate: 0 } : { rotate: [-5, 5] }}
-      transition={{ duration: 1.8, ease: 'easeInOut', repeat: Infinity, repeatType: 'mirror' }}
+    <div
+      className={`theme-fixed flex flex-col items-center origin-top animate-swing motion-reduce:animate-none ${className}`}
     >
       {/* Nail */}
       <span className="relative z-10 w-3 h-3 rounded-full bg-slate-500 ring-2 ring-slate-300 shadow" />
@@ -49,6 +43,6 @@ export const EarlyBirdSign = ({ className = '' }) => {
           ends soon
         </span>
       </Link>
-    </motion.div>
+    </div>
   );
 };

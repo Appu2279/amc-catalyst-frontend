@@ -12,20 +12,15 @@ import { FeatureBento } from '@/components/home/FeatureBento';
 import { JourneyTimeline } from '@/components/home/JourneyTimeline';
 import { Testimonials } from '@/components/home/Testimonials';
 
-// Counts up from 0 to `end` once the element scrolls into view. Visitors who
-// ask for reduced motion get the final number straight away.
+// Counts up from 0 to `end` once the element scrolls into view — for
+// reduced-motion visitors too, since a changing number isn't movement.
 const useCountUp = (end, duration = 2) => {
-  const reduce = useReducedMotion();
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
 
   useEffect(() => {
     if (!isInView) return;
-    if (reduce) {
-      setCount(end);
-      return;
-    }
     let startTime;
     let frame;
     const step = (t) => {
@@ -37,7 +32,7 @@ const useCountUp = (end, duration = 2) => {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [end, duration, isInView, reduce]);
+  }, [end, duration, isInView]);
 
   return { count, ref };
 };
@@ -69,14 +64,15 @@ const ROTATING_WORDS = ['with recalls.', 'with QBank.', 'with mocks.'];
 // The last line of the headline follows whichever demo the hero card is
 // playing. Screen readers get the static sentence in the h1 instead.
 const RotatingWord = ({ index }) => {
+  const reduce = useReducedMotion();
   return (
     <span className="relative block h-[1.15em] overflow-hidden" aria-hidden="true">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={ROTATING_WORDS[index]}
-          initial={{ y: '100%', opacity: 0 }}
-          animate={{ y: '0%', opacity: 1 }}
-          exit={{ y: '-100%', opacity: 0 }}
+          initial={reduce ? { opacity: 0 } : { y: '100%', opacity: 0 }}
+          animate={reduce ? { opacity: 1 } : { y: '0%', opacity: 1 }}
+          exit={reduce ? { opacity: 0 } : { y: '-100%', opacity: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="absolute left-0 bg-gradient-to-r from-amber-300 via-fuchsia-300 to-violet-300 bg-clip-text text-transparent whitespace-nowrap"
         >
@@ -95,8 +91,8 @@ const RevealWords = ({ text, delay = 0 }) => {
     <span key={i} className="inline-block overflow-hidden align-bottom pb-1 -mb-1">
       <motion.span
         className="inline-block"
-        initial={reduce ? false : { y: '110%' }}
-        animate={{ y: '0%' }}
+        initial={reduce ? { opacity: 0 } : { y: '110%' }}
+        animate={reduce ? { opacity: 1 } : { y: '0%' }}
         transition={{ duration: 0.6, delay: delay + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
       >
         {word}&nbsp;
@@ -161,7 +157,7 @@ const Hero = () => {
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8 grid lg:grid-cols-2 gap-14 items-center">
         <div>
           <motion.p
-            initial={reduce ? false : { opacity: 0, y: 10 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur mb-7 text-xs font-bold uppercase tracking-[0.15em] text-slate-200"
@@ -182,7 +178,7 @@ const Hero = () => {
           </h1>
 
           <motion.p
-            initial={reduce ? false : { opacity: 0, y: 12 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45 }}
             className="text-lg md:text-xl text-slate-300 leading-relaxed mb-9 max-w-xl"
@@ -192,7 +188,7 @@ const Hero = () => {
           </motion.p>
 
           <motion.div
-            initial={reduce ? false : { opacity: 0, y: 12 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-3 mb-9"
@@ -213,7 +209,7 @@ const Hero = () => {
           </motion.div>
 
           <motion.ul
-            initial={reduce ? false : { opacity: 0 }}
+            initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.8 }}
             className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-300"

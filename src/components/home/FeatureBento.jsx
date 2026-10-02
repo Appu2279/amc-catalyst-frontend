@@ -63,11 +63,12 @@ const RECALL_SAMPLES = [
 const RecallDeck = () => {
   const reduce = useReducedMotion();
   const [index, setIndex] = useState(0);
+  // Shuffles for reduced-motion visitors too, but as a fade: cards snap to
+  // their place in the stack instead of sliding there.
   useEffect(() => {
-    if (reduce) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % RECALL_SAMPLES.length), 2600);
     return () => clearInterval(id);
-  }, [reduce]);
+  }, []);
 
   return (
     <div className="relative mt-auto h-80 rounded-2xl bg-gradient-to-br from-violet-50 via-white to-blue-50 border border-slate-100 p-5 sm:p-8" aria-hidden="true">
@@ -81,10 +82,12 @@ const RecallDeck = () => {
           return (
             <motion.div
               key={item.q}
-              initial={{ opacity: 0, y: 40, scale: 0.9 }}
+              initial={reduce ? { opacity: 0, y: depth * 16, scale: 1 - depth * 0.05 } : { opacity: 0, y: 40, scale: 0.9 }}
               animate={{ opacity: 1 - depth * 0.3, y: depth * 16, scale: 1 - depth * 0.05, zIndex: 3 - depth }}
-              exit={{ opacity: 0, y: -30, scale: 1.02 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -30, scale: 1.02 }}
+              transition={reduce
+                ? { duration: 0.4, y: { duration: 0 }, scale: { duration: 0 } }
+                : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="absolute inset-x-0 top-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg"
             >
               <span className="text-xs font-bold uppercase tracking-wider text-brand-violet">{item.subject}</span>

@@ -22,7 +22,7 @@ const NAV = [
   { key: 'qbank', to: '/qbank', label: 'QBank', short: 'QBank', icon: BookOpen },
   { key: 'recall', to: '/recall', label: 'Recall', short: 'Recall', icon: UndoDotIcon },
   { key: 'mock-exam', to: '/mock-exam', label: 'Mock Exams', short: 'Exams', icon: Trophy },
-  { key: 'registration', to: '/registration-pathway', label: 'Registration', short: 'Pathway', icon: Workflow },
+  { key: 'registration', to: '/pathway-guide', label: 'Pathway Guide', short: 'Guide', icon: Workflow },
 ];
 
 export const DashboardLayout = ({ children, active, collapseNav = false }) => {

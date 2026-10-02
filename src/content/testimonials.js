@@ -36,9 +36,9 @@ export const TESTIMONIALS = [
   {
     quote:
       'A big thank you to AMC Catalyst and all the amazing doctors in this community for the guidance, support, and encouragement throughout my AMC journey. Dr. Solosailor, you’re doing an amazing job bringing doctors together and building such a supportive community. Happy to say that I’ve cleared my AMC exam! Truly grateful to be a part of this wonderful community.',
-    name: 'Dr. Shalini Sreenivasan',
+    name: 'Dr. Lakshmishree Shanti',
     role: 'Cleared AMC-1',
-    photo: '/images/testimonials/shalini-sreenivasan.jpg',
+    photo: '/images/testimonials/lakshmishree-shanti.jpg',
     featured: true,
   },
   {

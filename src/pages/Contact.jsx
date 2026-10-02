@@ -60,7 +60,7 @@ export const Contact = () => {
   return (
     <div className="bg-white selection:bg-brand-violet/10 pt-20">
       {/* Hero Header */}
-      <section className="relative pt-16 pb-20 overflow-hidden bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white">
+      <section className="theme-fixed relative pt-16 pb-20 overflow-hidden bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-brand-violet/20 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-80 h-80 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
 

@@ -4,6 +4,7 @@ import { Menu, X, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/utils/cn';
+import { ThemeToggle } from '@/context/ThemeContext';
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,7 +16,7 @@ export const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Features', path: '/features' },
     { name: 'Pricing', path: '/pricing' },
-    { name: 'About', path: '/about' },
+    { name: 'Testimonials', path: '/testimonials' },
     { name: 'Contact', path: '/contact' },
   ];
 
@@ -31,7 +32,7 @@ export const Navbar = () => {
               <img
                 src="/images/logo.png"
                 alt="AMC Catalyst Logo"
-                className="w-20 h-20"
+                className="w-20 h-20 dark:bg-white dark:rounded-2xl dark:scale-75"
               />
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold">
@@ -59,6 +60,7 @@ export const Navbar = () => {
 
           {/* Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <ThemeToggle />
             {isAuthenticated ? (
               <>
                 <Link to={dashboardPath}>
@@ -79,7 +81,8 @@ export const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-1">
+            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-slate-600 hover:text-slate-900 p-2"

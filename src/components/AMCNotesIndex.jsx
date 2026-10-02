@@ -355,7 +355,7 @@ export const AMCNotesIndex = ({
     <div className={`w-full ${variant === 'embed' ? '' : 'py-6'}`}>
 
       {/* Hero Header Card */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 mb-6 shadow-xl relative overflow-hidden border border-indigo-900/50">
+      <div className="theme-fixed bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 mb-6 shadow-xl relative overflow-hidden border border-indigo-900/50">
         <div className="absolute top-0 right-0 w-96 h-96 bg-brand-violet/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -417,7 +417,7 @@ export const AMCNotesIndex = ({
         </div>
 
         {/* Strict IP Tracking & Anti-Piracy Notice */}
-        <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-900 border-2 border-indigo-900 text-white">
+        <div className="theme-fixed flex items-start gap-3 p-4 rounded-2xl bg-slate-900 border-2 border-indigo-900 text-white">
           <Lock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div>
             <h4 className="text-xs font-black uppercase tracking-wider text-amber-300">
@@ -437,7 +437,7 @@ export const AMCNotesIndex = ({
             onClick={() => setActiveTab('all')}
             className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-center ${
               activeTab === 'all'
-                ? 'bg-slate-900 text-white shadow-sm'
+                ? 'bg-slate-900 dark:bg-white/15 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >

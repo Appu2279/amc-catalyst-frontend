@@ -134,7 +134,7 @@ export const Register = () => {
 
       {/* Left Panel: Branding */}
       <div className="lg:w-[40%] bg-slate-50 border-r border-slate-100 p-12 lg:p-24 flex flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 [background:radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-50" />
+        <div className="absolute inset-0 [background:radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-50 dark:opacity-10" />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

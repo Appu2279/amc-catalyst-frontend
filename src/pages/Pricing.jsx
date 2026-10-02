@@ -12,7 +12,7 @@ import { EarlyBirdTag } from '@/components/EarlyBirdTag';
 const HIGHLIGHTS = [
   { icon: ClipboardList,     title: '10 Months of Recalls', body: 'Extensive recall content with monthly additions.' },
   { icon: BookOpen,          title: '3–5 Mock Exams',       body: 'Exam pattern based full-length mocks.' },
-  { icon: HelpCircle,        title: 'Subject-wise MCQs',    body: 'High-yield MCQs from major question banks (Coming Soon ⏳).' },
+  { icon: HelpCircle,        title: 'Subject-wise MCQs',    body: 'High-yield MCQs from major question banks.' },
   { icon: Users,             title: 'Community & Support',  body: 'Telegram community, discussions & expert guidance.' },
 ];
 
@@ -139,7 +139,6 @@ const PlanCard = ({ course, index, audToInrRate }) => {
 
       <ul className="flex-1 space-y-3">
         {features.map((feature) => {
-          const isMcq = feature.name?.toLowerCase().includes('mcq') || feature.name?.toLowerCase().includes('qbank');
           return feature.CourseFeature?.highlight ? (
             <li
               key={feature.id}
@@ -148,11 +147,6 @@ const PlanCard = ({ course, index, audToInrRate }) => {
               <Sparkles className="mx-auto mb-1.5 h-5 w-5 text-brand-violet" />
               <div className="text-sm font-bold text-brand-dark flex flex-col items-center justify-center gap-1.5">
                 <span>{feature.name}</span>
-                {isMcq && (
-                  <span className="inline-block text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                    Coming Soon ⏳
-                  </span>
-                )}
               </div>
             </li>
           ) : (
@@ -163,11 +157,6 @@ const PlanCard = ({ course, index, audToInrRate }) => {
                   {feature.name}
                 </span>
               </div>
-              {isMcq && (
-                <span className="shrink-0 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                  Coming Soon ⏳
-                </span>
-              )}
             </li>
           );
         })}

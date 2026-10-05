@@ -35,3 +35,11 @@ export const upiPaymentUri = ({ amount, reference }) => {
   });
   return `upi://pay?${params.toString()}`;
 };
+
+/** Direct bank transfer — an alternative for buyers who cannot pay by UPI QR. */
+export const BANK_DETAILS = {
+  accountName: 'FAISAL KASSIM',
+  accountNumber: '157559974868',
+  ifsc: 'INDB0000991',
+  mobile: '7559974868',
+};

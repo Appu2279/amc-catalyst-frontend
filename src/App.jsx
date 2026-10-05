@@ -30,6 +30,9 @@ import { MockExamSession } from '@/pages/MockExamSession';
 import { MockExamResult } from '@/pages/MockExamResult';
 import { Profile } from '@/pages/Profile';
 import { RegistrationPathway } from '@/pages/RegistrationPathway';
+import { LiveExam } from '@/pages/LiveExam';
+import { LiveExamSession } from '@/pages/LiveExamSession';
+import { LiveExamResultsIndex, LiveExamPublicResults } from '@/pages/LiveExamResults';
 
 // Admin pages
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
@@ -42,6 +45,8 @@ import { AdminCourses } from '@/pages/admin/AdminCourses';
 import { AdminNotes } from '@/pages/admin/AdminNotes';
 import { AdminPaymentClaims } from '@/pages/admin/AdminPaymentClaims';
 import { AdminReferrals } from '@/pages/admin/AdminReferrals';
+import { AdminLiveExams } from '@/pages/admin/AdminLiveExams';
+import { AdminLiveExamDetail } from '@/pages/admin/AdminLiveExamDetail';
 import { LegalPage } from '@/pages/LegalPage';
 import { TERMS, PRIVACY } from '@/content/legal';
 
@@ -101,6 +106,9 @@ export const App = () => (
           <Route path="/features" element={<PublicLayout><Features /></PublicLayout>} />
           <Route path="/pricing" element={<PublicLayout><Pricing /></PublicLayout>} />
           <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+          {/* Published live-exam results — public, outside the dashboard. */}
+          <Route path="/results" element={<PublicLayout><LiveExamResultsIndex /></PublicLayout>} />
+          <Route path="/results/:slug" element={<PublicLayout><LiveExamPublicResults /></PublicLayout>} />
 
           {/* Legal — linked from the footer, the register consent line, and each
               other. Public on purpose: a visitor must be able to read the terms
@@ -125,6 +133,9 @@ export const App = () => (
             <Route path="/recall" element={<Recall />} />
             <Route path="/mock-exam" element={<MockExam />} />
             <Route path="/pathway-guide" element={<RegistrationPathway />} />
+            {/* Live exam: open to every signed-in student, no plan needed. */}
+            <Route path="/live-exam" element={<LiveExam />} />
+            <Route path="/live-exam/session" element={<LiveExamSession />} />
             {/* Old address, kept so existing links and bookmarks still work. */}
             <Route path="/registration-pathway" element={<Navigate to="/pathway-guide" replace />} />
             <Route path="/mock-exam/:testId/attempt/:attemptId" element={<MockExamSession />} />
@@ -149,6 +160,8 @@ export const App = () => (
             <Route path="/admin/notes" element={<AdminNotes />} />
             <Route path="/admin/payments" element={<AdminPaymentClaims />} />
             <Route path="/admin/referrals" element={<AdminReferrals />} />
+            <Route path="/admin/live-exams" element={<AdminLiveExams />} />
+            <Route path="/admin/live-exams/:id" element={<AdminLiveExamDetail />} />
           </Route>
         </Routes>
       </ThemeProvider>

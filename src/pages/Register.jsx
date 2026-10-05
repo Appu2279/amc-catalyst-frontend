@@ -8,6 +8,7 @@ import {
 import { registerUser } from '@/api/userService';
 import { getStoredReferralCode, clearStoredReferralCode } from '@/lib/referral';
 import { Toast } from '@/components/ui/Toast';
+import { PhoneInput, isValidPhone } from '@/components/PhoneInput';
 import {
   PROFESSIONAL_ROLES,
   COUNTRIES,
@@ -34,6 +35,7 @@ export const Register = () => {
   const [name, setName]                         = useState('');
   const [email, setEmail]                       = useState('');
   const [password, setPassword]                 = useState('');
+  const [phone, setPhone]                       = useState('');
   const [professionalRole, setProfessionalRole] = useState('');
   const [country, setCountry]                   = useState('');
   const [graduationYear, setGraduationYear]     = useState('');
@@ -69,6 +71,14 @@ export const Register = () => {
       showToast('error', 'Password must be at least 6 characters.');
       return;
     }
+    if (!phone) {
+      showToast('error', 'Please enter your WhatsApp number.');
+      return;
+    }
+    if (!isValidPhone(phone)) {
+      showToast('error', 'Please check your WhatsApp number and the country code selected next to it.');
+      return;
+    }
     if (!professionalRole) {
       showToast('error', 'Please select your current role.');
       return;
@@ -88,6 +98,7 @@ export const Register = () => {
         fullName: name.trim(),
         email: email.trim(),
         password,
+        phone,
         professionalRole,
         country,
         graduationYear: Number(graduationYear),
@@ -243,6 +254,22 @@ export const Register = () => {
                 />
               </div>
               <p className="text-[10px] text-slate-300 ml-1">Minimum 6 characters</p>
+            </div>
+
+            {/* WhatsApp number — after the password on purpose: browsers autofill a
+                saved email into whatever field sits just above the password. */}
+            <div className="group space-y-2">
+              <label htmlFor="register-phone" className={labelClass}>WhatsApp Number</label>
+              <PhoneInput
+                id="register-phone"
+                value={phone}
+                onChange={setPhone}
+                country={country}
+                fieldClassName={fieldClass}
+              />
+              <p className="text-[10px] text-slate-300 ml-1">
+                Choose your country code, then type the number you use on WhatsApp.
+              </p>
             </div>
 
             {/* Current Role */}

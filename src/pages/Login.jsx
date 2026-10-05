@@ -2,9 +2,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Toast } from '@/components/ui/Toast';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, CheckCircle2, Fingerprint, Lock, Mail, Stethoscope } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { loginUser } from '../api/userService';
+import { SIGN_OUT_NOTICE_KEY } from '@/lib/axiosInstance';
 
 export const Login = () => {
   // Set when Register redirects here after creating the account. Read once into
@@ -23,6 +24,17 @@ export const Login = () => {
   const navigate  = useNavigate();
 
   const showToast = (type, message) => setToast({ type, message });
+
+  // Set when a signed-in user was signed out because their account was banned.
+  useEffect(() => {
+    try {
+      const notice = sessionStorage.getItem(SIGN_OUT_NOTICE_KEY);
+      if (notice) {
+        sessionStorage.removeItem(SIGN_OUT_NOTICE_KEY);
+        showToast('error', notice);
+      }
+    } catch { /* storage unavailable */ }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

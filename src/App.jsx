@@ -45,6 +45,7 @@ import { AdminCourses } from '@/pages/admin/AdminCourses';
 import { AdminNotes } from '@/pages/admin/AdminNotes';
 import { AdminPaymentClaims } from '@/pages/admin/AdminPaymentClaims';
 import { AdminReferrals } from '@/pages/admin/AdminReferrals';
+import { AdminUsers } from '@/pages/admin/AdminUsers';
 import { AdminLiveExams } from '@/pages/admin/AdminLiveExams';
 import { AdminLiveExamDetail } from '@/pages/admin/AdminLiveExamDetail';
 import { LegalPage } from '@/pages/LegalPage';
@@ -158,6 +159,7 @@ export const App = () => (
             <Route path="/admin/mock-tests/:id" element={<AdminMockTestDetail />} />
             <Route path="/admin/courses" element={<AdminCourses />} />
             <Route path="/admin/notes" element={<AdminNotes />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/payments" element={<AdminPaymentClaims />} />
             <Route path="/admin/referrals" element={<AdminReferrals />} />
             <Route path="/admin/live-exams" element={<AdminLiveExams />} />

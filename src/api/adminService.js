@@ -189,3 +189,32 @@ export const getReferralRewards = (params) =>
 
 export const markReferralRewardPaid = (id, note) =>
   axiosInstance.post(`/admin/referrals/rewards/${id}/pay`, { note });
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+//
+// Account and plan control. Bans and removals are enforced on every request by
+// the backend, so they take effect immediately, not at the user's next login.
+
+// status: 'all' | 'active' | 'banned' | 'removed'
+export const getAdminUsers = (params) => axiosInstance.get('/admin/users', { params });
+export const getAdminUser = (id) => axiosInstance.get(`/admin/users/${id}`);
+
+// days omitted = permanent ban; otherwise it lifts itself after that many days.
+export const banUser = (id, { days, reason }) => axiosInstance.post(`/admin/users/${id}/ban`, { days, reason });
+export const unbanUser = (id) => axiosInstance.post(`/admin/users/${id}/unban`);
+export const removeUser = (id) => axiosInstance.delete(`/admin/users/${id}`);
+export const restoreUser = (id) => axiosInstance.post(`/admin/users/${id}/restore`);
+
+export const grantUserPlan = (id, courseId) =>
+  axiosInstance.post(`/admin/users/${id}/subscriptions`, { course_id: courseId });
+export const revokeSubscription = (subscriptionId, note) =>
+  axiosInstance.post(`/admin/users/subscriptions/${subscriptionId}/revoke`, { note });
+// Pass { months } or { end_date }.
+export const extendSubscription = (subscriptionId, body) =>
+  axiosInstance.post(`/admin/users/subscriptions/${subscriptionId}/extend`, body);
+export const changeSubscriptionPlan = (subscriptionId, courseId) =>
+  axiosInstance.post(`/admin/users/subscriptions/${subscriptionId}/change-plan`, { course_id: courseId });
+
+// Every approved payment with the student's full profile, as a CSV file.
+export const downloadPaidStudentsCsv = () =>
+  axiosInstance.get('/admin/users/export/paid.csv', { responseType: 'blob', timeout: 60000 });

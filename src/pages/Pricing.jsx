@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { AMCNotesIndex } from '@/components/AMCNotesIndex';
 import { CourseAnnouncement } from '@/components/CourseAnnouncement';
 import { EarlyBirdTag } from '@/components/EarlyBirdTag';
+import { formatAud, formatAudAmount } from '@/lib/currency';
 
 // Static supporting copy from the client's sheet — presentation only, so it is
 // not stored against any plan.
@@ -31,8 +32,6 @@ const NOTES = [
 ];
 
 const inr = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
-const aud = (value) =>
-  new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(value);
 
 // Accent per card position, following the client's layout: the two middle tiers
 // carry the emphasis, the standalone plan sits quieter on the end.
@@ -98,14 +97,17 @@ const PlanCard = ({ course, index, audToInrRate }) => {
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Early Bird</p>
         {hasAud ? (
           <>
-            <p className="text-4xl font-black tracking-tighter text-brand-dark">{aud(audDiscounted)}</p>
+            <p className="text-4xl font-black tracking-tighter text-brand-dark">
+              {formatAudAmount(audDiscounted)}
+              <span className="ml-1.5 text-lg font-bold tracking-normal text-slate-500">AUD</span>
+            </p>
             <p className="mt-1 text-sm font-bold text-slate-500">≈ {inr(inrEquivalent)}</p>
             {audRegular !== audDiscounted && (
               <>
                 <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">
                   Regular Price
                 </p>
-                <p className="text-sm font-bold text-slate-400 line-through">{aud(audRegular)}</p>
+                <p className="text-sm font-bold text-slate-400 line-through">{formatAud(audRegular)}</p>
               </>
             )}
           </>

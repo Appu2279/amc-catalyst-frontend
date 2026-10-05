@@ -16,10 +16,11 @@ import {
   X,
   Clock,
   ImageIcon,
+  Gift,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { getCourseById } from '@/api/courseService';
-import { startPaymentClaim, submitPaymentClaim } from '@/api/userService';
+import { startPaymentClaim, submitPaymentClaim, getMyReferral, applyReferralCode } from '@/api/userService';
 import { formatAud, formatAudAmount } from '@/lib/currency';
 import {
   UPI_ID,
@@ -205,6 +206,103 @@ const OrderSummary = ({ course, audPrice, price, referenceCode }) => {
         </ul>
       </div>
     </div>
+  );
+};
+
+const formatReward = (amount, currency) =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount);
+
+/**
+ * Lets a buyer who did not arrive through a referral link enter a code. It
+ * does not change the price — it records who referred them, and the reward is
+ * raised when this payment is approved.
+ */
+const ReferralCodeBox = () => {
+  const [referral, setReferral] = useState(null);
+  const [code, setCode] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getMyReferral()
+      .then(({ data }) => setReferral(data))
+      .catch(() => setReferral(null)); // Optional extra — checkout works without it.
+  }, []);
+
+  const apply = async (e) => {
+    e.preventDefault();
+    if (!code.trim()) {
+      setError('Enter a referral code.');
+      return;
+    }
+    setIsApplying(true);
+    setError('');
+    try {
+      const { data } = await applyReferralCode(code.trim());
+      setReferral(data);
+    } catch (err) {
+      setError(errorMessage(err, 'Could not apply that code. Try again.'));
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  if (!referral || referral.mode === 'off') return null;
+
+  if (referral.referred_with_code) {
+    return (
+      <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 p-4">
+        <p className="flex items-center gap-2 text-sm font-semibold text-green-800">
+          <Check className="h-4 w-4" /> Referral code {referral.referred_with_code} applied
+        </p>
+        {referral.mode === 'both' && (
+          <p className="mt-1 text-xs text-green-700">
+            You'll receive a {formatReward(referral.reward_amount, referral.currency)} referral reward once your
+            payment is approved.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (!referral.can_apply_code) return null;
+
+  return (
+    <form onSubmit={apply} noValidate className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+      <label htmlFor="referral-code" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+        <Gift className="h-4 w-4 text-brand-violet" /> Have a referral code?
+      </label>
+      <div className="mt-3 flex gap-2">
+        <input
+          id="referral-code"
+          value={code}
+          onChange={(e) => { setCode(e.target.value.toUpperCase()); if (error) setError(''); }}
+          placeholder="e.g. JENNIFER-VML5"
+          autoComplete="off"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? 'referral-code-error' : undefined}
+          className={`min-w-0 flex-1 rounded-xl border bg-slate-50 px-3 py-2.5 font-mono text-sm uppercase focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-violet ${
+            error ? 'border-red-400' : 'border-slate-200'
+          }`}
+        />
+        <button
+          type="submit"
+          disabled={isApplying}
+          className="shrink-0 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+        >
+          {isApplying ? 'Applying…' : 'Apply'}
+        </button>
+      </div>
+      {error ? (
+        <p id="referral-code-error" role="alert" className="mt-2 text-xs text-red-600">{error}</p>
+      ) : (
+        <p className="mt-2 text-xs text-slate-500">
+          {referral.mode === 'both'
+            ? `Apply it before you pay — you'll receive a ${formatReward(referral.reward_amount, referral.currency)} referral reward once your payment is approved.`
+            : 'Apply it before you pay, so the person who referred you is rewarded.'}
+        </p>
+      )}
+    </form>
   );
 };
 
@@ -457,6 +555,7 @@ export const Checkout = () => {
                 price={price}
                 referenceCode={claim.reference_code}
               />
+              <ReferralCodeBox />
             </aside>
 
             <div className="space-y-6 lg:order-1">

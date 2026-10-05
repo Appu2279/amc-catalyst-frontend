@@ -128,3 +128,7 @@ export const submitPaymentClaim = (id, { utr, amount_claimed, screenshot }) => {
     timeout: 120000,
   });
 };
+
+// Enter a referral code by hand (checkout), for buyers who did not arrive on a
+// referral link. Only before their first approved payment.
+export const applyReferralCode = (code) => axiosInstance.post('/me/referral/apply', { code });

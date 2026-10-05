@@ -11,6 +11,8 @@ if (import.meta.env.PROD && !import.meta.env.VITE_API_URL) {
   );
 }
 
+export const SIGN_OUT_NOTICE_KEY = 'amc_catalyst_sign_out_notice';
+
 const axiosInstance = axios.create({
   baseURL,
   timeout: 10000,
@@ -40,9 +42,15 @@ axiosInstance.interceptors.response.use(
     // would reload it and swallow the "wrong password" message.
     const isAuthAttempt = /\/auth\/(login|register)$/.test(error.config?.url ?? '');
 
-    if (status === 401 && !isAuthAttempt) {
+    const isBanned = status === 403 && error.response?.data?.code === 'ACCOUNT_BANNED';
+
+    if ((status === 401 || isBanned) && !isAuthAttempt) {
       localStorage.removeItem('amc_catalyst_token');
       localStorage.removeItem('amc_catalyst_user');
+      // Survives the reload so the login page can say why they were signed out.
+      if (isBanned) {
+        try { sessionStorage.setItem(SIGN_OUT_NOTICE_KEY, error.response.data.message); } catch { /* storage unavailable */ }
+      }
       window.location.href = '/login';
     }
     return Promise.reject(error);

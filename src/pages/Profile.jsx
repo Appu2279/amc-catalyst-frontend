@@ -7,6 +7,7 @@ import {
   Crown, CalendarDays, ArrowRight, Sparkles, Gift, Copy, Link2,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
+import { PhoneInput, isValidPhone } from '@/components/PhoneInput';
 import { useAuth } from '@/context/AuthContext';
 import { useAccess } from '@/hooks/useAccess';
 import { Toast } from '@/components/ui/Toast';
@@ -40,6 +41,8 @@ const iconClass =
 const emptyForm = {
   fullName: '',
   email: '',
+  phone: '',
+  amcExamDate: '',
   professionalRole: '',
   country: '',
   graduationYear: '',
@@ -287,6 +290,8 @@ export const Profile = () => {
     const next = {
       fullName:         u.fullName ?? '',
       email:            u.email ?? '',
+      phone:            u.phone ?? '',
+      amcExamDate:      u.amcExamDate ?? '',
       professionalRole: u.professionalRole ?? '',
       country:          u.country ?? '',
       graduationYear:   u.graduationYear != null ? String(u.graduationYear) : '',
@@ -396,12 +401,17 @@ export const Profile = () => {
 
     if (!form.fullName.trim())  return showToast('error', 'Please enter your full name.');
     if (!form.email.trim())     return showToast('error', 'Please enter your email address.');
+    if (form.phone && !isValidPhone(form.phone)) {
+      return showToast('error', 'Please check your WhatsApp number and the country code selected next to it.');
+    }
     if (!form.professionalRole) return showToast('error', 'Please select your current role.');
     if (!form.country)          return showToast('error', 'Please select your country.');
     if (!form.graduationYear)   return showToast('error', 'Please select your year of graduation.');
 
     const payload = { ...changedFields };
     if (payload.graduationYear !== undefined) payload.graduationYear = Number(payload.graduationYear);
+    // An emptied date means "not decided yet", which the API stores as null.
+    if (payload.amcExamDate === '') payload.amcExamDate = null;
 
     if (wantsPasswordChange) {
       if (pw.newPassword.length < 6) return showToast('error', 'New password must be at least 6 characters.');
@@ -567,6 +577,24 @@ export const Profile = () => {
                   />
                 </Field>
 
+                <div className="group space-y-2">
+                  <label htmlFor="profile-phone" className={labelClass}>WhatsApp Number</label>
+                  {/* Keyed on the loaded value so the field re-reads it once the profile arrives. */}
+                  <PhoneInput
+                    key={initial.phone}
+                    id="profile-phone"
+                    value={form.phone}
+                    onChange={(phone) => setForm((f) => ({ ...f, phone }))}
+                    country={form.country}
+                    fieldClassName={fieldClass}
+                  />
+                  {!initial.phone && (
+                    <p className="text-[10px] font-medium text-amber-600 ml-1">
+                      Please add the number you use on WhatsApp. Choose your country code, then type the number.
+                    </p>
+                  )}
+                </div>
+
                 <Field label="Current Role" icon={Briefcase}>
                   <select
                     className={`${fieldClass} appearance-none pr-11 cursor-pointer ${form.professionalRole ? 'text-slate-900' : 'text-slate-400'}`}
@@ -610,6 +638,19 @@ export const Profile = () => {
                     <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </Field>
                 </div>
+
+                <Field
+                  label="AMC Exam Date"
+                  icon={CalendarDays}
+                  hint="Your booked, planned or expected exam date."
+                >
+                  <input
+                    type="date"
+                    className={`${fieldClass} ${form.amcExamDate ? 'text-slate-900' : 'text-slate-400'}`}
+                    value={form.amcExamDate}
+                    onChange={set('amcExamDate')}
+                  />
+                </Field>
               </div>
             </Card>
 

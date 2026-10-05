@@ -6,6 +6,7 @@ import {
   approvePaymentClaim,
   rejectPaymentClaim,
   getPaymentClaimScreenshot,
+  downloadPaidStudentsCsv,
 } from '@/api/adminService';
 import {
   IndianRupee,
@@ -15,6 +16,7 @@ import {
   Image as ImageIcon,
   AlertTriangle,
   Inbox,
+  Download,
 } from 'lucide-react';
 
 // ── Small shared bits (kept local, matching the other admin pages) ────────────
@@ -193,6 +195,26 @@ export const AdminPaymentClaims = () => {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportPaidStudents = async () => {
+    setIsExporting(true);
+    try {
+      const res = await downloadPaidStudentsCsv();
+      const filename = `paid-students-${new Date().toISOString().slice(0, 10)}.csv`;
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      notify('error', 'Could not download the paid students list. Try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -247,12 +269,23 @@ export const AdminPaymentClaims = () => {
     <AdminLayout>
       <Toast toast={toast} />
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Buyers who say they have paid by QR. Check the UTR against the bank statement before
-          approving — a screenshot is not proof. Approving is what grants the subscription.
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Buyers who say they have paid by QR. Check the UTR against the bank statement before
+            approving — a screenshot is not proof. Approving is what grants the subscription.
+          </p>
+        </div>
+        <button
+          onClick={exportPaidStudents}
+          disabled={isExporting}
+          title="Every approved payment with the student's full details, as a spreadsheet (CSV)"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm bg-brand-blue text-white rounded-lg hover:bg-brand-blue-hover disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" />
+          {isExporting ? 'Preparing…' : 'Download paid students'}
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">

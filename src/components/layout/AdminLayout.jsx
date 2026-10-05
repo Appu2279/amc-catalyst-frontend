@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   LayoutDashboard, BookOpen, HelpCircle, Upload,
-  ClipboardList, GraduationCap, LogOut, Menu, X, FileText, IndianRupee, Gift, Radio,
+  ClipboardList, GraduationCap, LogOut, Menu, X, FileText, IndianRupee, Gift, Radio, Users,
 } from 'lucide-react';
 import { getMockTests, getPaymentClaims } from '@/api/adminService';
 
@@ -16,6 +16,7 @@ const NAV = [
   { path: '/admin/live-exams', label: 'Live Exams', icon: Radio },
   { path: '/admin/courses', label: 'Courses', icon: GraduationCap },
   { path: '/admin/notes', label: 'Notes', icon: FileText },
+  { path: '/admin/users', label: 'Users', icon: Users },
   { path: '/admin/payments', label: 'Payments', icon: IndianRupee },
   { path: '/admin/referrals', label: 'Referrals', icon: Gift },
 ];

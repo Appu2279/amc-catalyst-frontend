@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Modal } from '@/components/admin/Modal';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { formatAud } from '@/lib/currency';
 import {
   getCourses, createCourse, updateCourse, deleteCourse,
   getFeatures, createFeature, getBenefits, createBenefit,
@@ -294,7 +295,7 @@ const CourseForm = ({ form, setForm, allFeatures, allBenefits, onCreateFeature, 
               />
             </div>
             <p className="text-[11px] text-slate-400 -mt-1">
-              Shown on Pricing as A$ with an INR estimate at the current exchange rate (below),
+              Shown on Pricing as $ AUD with an INR estimate at the current exchange rate (below),
               and charged in INR at checkout — no need to also enter a rupee price.
             </p>
             <details className="text-xs">
@@ -433,10 +434,10 @@ const CourseCard = ({ course, onEdit, onDelete, audToInrRate }) => {
                 {hasAud ? (
                   <div className="mt-0.5">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="font-bold">A${Number(audPrice).toLocaleString()}</span>
+                      <span className="font-bold">{formatAud(audPrice)}</span>
                       {hasDiscount && (
                         <span className="text-xs line-through text-slate-400">
-                          A${Number(tier.actual_price_aud).toLocaleString()}
+                          {formatAud(tier.actual_price_aud)}
                         </span>
                       )}
                     </div>

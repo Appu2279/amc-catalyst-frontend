@@ -1,26 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/utils/cn';
 import { ThemeToggle } from '@/context/ThemeContext';
+import { getPublishedResults } from '@/api/liveExamService';
+
+// Asked once per page load: the Results link appears only once some live exam
+// has published results.
+let resultsPublished = null;
+const hasPublishedResults = () => {
+  resultsPublished ??= getPublishedResults().then((res) => (res.data ?? []).length > 0).catch(() => false);
+  return resultsPublished;
+};
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated, logout, user } = useAuth();
   const dashboardPath = user?.role === 'admin' ? '/admin' : '/dashboard';
   const location = useLocation();
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => { hasPublishedResults().then(setShowResults); }, []);
 
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Features', path: '/features' },
     { name: 'Pricing', path: '/pricing' },
+    ...(showResults ? [{ name: 'Results', path: '/results' }] : []),
     { name: 'Testimonials', path: '/testimonials' },
     { name: 'Contact', path: '/contact' },
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => path === '/results' ? location.pathname.startsWith('/results') : location.pathname === path;
 
   // Touch screens (phones and tablets, either orientation) get a solid bar
   // with no backdrop blur: blurring the page behind a fixed bar is recomputed

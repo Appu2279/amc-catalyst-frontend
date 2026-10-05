@@ -12,9 +12,11 @@ import {
   Sparkles,
   Workflow,
   BookOpen,
+  Radio,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserAvatar } from '@/components/UserAvatar';
+import { useCurrentLiveExam } from '@/hooks/useCurrentLiveExam';
 
 const NAV = [
   { key: 'dashboard', to: '/dashboard', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
@@ -25,10 +27,30 @@ const NAV = [
   { key: 'registration', to: '/pathway-guide', label: 'Pathway Guide', short: 'Guide', icon: Workflow },
 ];
 
+// Only while an admin has a live exam switched on; otherwise the item is not
+// there at all. Its badge follows the exam through its day.
+const LIVE_BADGE = {
+  upcoming: { text: 'Soon', className: 'bg-amber-100 text-amber-900 border-amber-300' },
+  open: { text: 'Live', className: 'bg-red-500 text-white border-red-500 animate-pulse' },
+  results: { text: 'Results', className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+};
+
+const withLiveExam = (exam) => {
+  if (!exam) return NAV;
+  const item = {
+    key: 'live-exam', to: '/live-exam', label: 'Live Exam', short: 'Live', icon: Radio,
+    badge: LIVE_BADGE[exam.phase],
+  };
+  const at = NAV.findIndex((n) => n.key === 'mock-exam') + 1;
+  return [...NAV.slice(0, at), item, ...NAV.slice(at)];
+};
+
 export const DashboardLayout = ({ children, active, collapseNav = false }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(collapseNav);
+  const { exam: liveExam } = useCurrentLiveExam();
+  const navItems = withLiveExam(liveExam);
 
   useEffect(() => setCollapsed(collapseNav), [collapseNav]);
 
@@ -75,7 +97,7 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
         </div>
 
         <nav className={`flex-1 space-y-1.5 mt-4 ${collapsed ? 'px-2' : 'px-3'}`}>
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const current = isActive(item);
             return (
@@ -104,6 +126,11 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
                 {!collapsed && item.comingSoon && (
                   <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
                     Soon ⏳
+                  </span>
+                )}
+                {!collapsed && item.badge && (
+                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${item.badge.className}`}>
+                    {item.badge.text}
                   </span>
                 )}
               </Link>
@@ -167,7 +194,7 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
       {/* Mobile & Tablet Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 z-50 px-2 py-1 shadow-lg">
         <div className="flex items-center justify-around h-14 max-w-md mx-auto">
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const current = isActive(item);
             return (
@@ -183,6 +210,11 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
                 {item.comingSoon && (
                   <span className="absolute -top-1 right-1 text-[8px] font-black px-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                     Soon
+                  </span>
+                )}
+                {item.badge && (
+                  <span className={`absolute -top-1 right-1 text-[8px] font-black px-1 rounded-full border ${item.badge.className}`}>
+                    {item.badge.text}
                   </span>
                 )}
               </Link>

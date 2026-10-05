@@ -49,22 +49,6 @@ const PaperFacts = ({ exam, toClose }) => (
   </div>
 );
 
-const Blueprint = ({ blueprint }) => {
-  if (!blueprint?.length) return null;
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Paper weightage</p>
-      <div className="flex flex-wrap gap-2">
-        {blueprint.map((b) => (
-          <span key={b.domain} className="text-xs px-2.5 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-100">
-            {b.domain} · {b.count} Qs
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // The welcome text candidates read before starting, in the style of the real
 // exam. The numbers come from the paper itself, so they always match what was set.
 const Instructions = ({ exam }) => (
@@ -72,8 +56,8 @@ const Instructions = ({ exam }) => (
     <p>Welcome to <strong className="text-slate-900">{exam.title}</strong>.</p>
     <p>
       This exam consists of <strong className="text-slate-900">{exam.total_questions} multiple-choice questions</strong> (in
-      single best answer format). Questions can be answered in any order. Answers can be altered at any stage prior to
-      submitting the exam.
+      single best answer format). Questions are shown <strong className="text-slate-900">one at a time, in order</strong>.
+      Once you submit or skip a question, your answer is final — you cannot go back to it or change it.
     </p>
     <p>
       You have <strong className="text-slate-900">{exam.duration_minutes} minutes</strong> to complete the exam. The exam must
@@ -196,7 +180,6 @@ export const LiveExam = () => {
           </p>
         </div>
         <PaperFacts exam={exam} toClose={toClose} />
-        <Blueprint blueprint={exam.blueprint} />
         <Instructions exam={exam} />
       </Card>
     );
@@ -208,7 +191,6 @@ export const LiveExam = () => {
         </div>
         <Instructions exam={exam} />
         <PaperFacts exam={exam} toClose={toClose} />
-        <Blueprint blueprint={exam.blueprint} />
         {shortWindow && (
           <div className="flex gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />

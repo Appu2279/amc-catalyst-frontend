@@ -94,7 +94,30 @@ const EMPTY_UPLOAD = { file: null, cover: null, title: '', description: '', sort
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export const AdminNotes = () => {
+// The same page manages both PDF collections; only the wording differs.
+const COPY = {
+  notes: {
+    heading: 'Notes',
+    intro: 'PDFs shown to students on their Notes page. Uploads appear immediately and are paid by default — switch on "Free sample" to open one to everyone.',
+    upload: 'Upload note',
+    freeColumn: 'Free sample',
+    empty: 'Upload a PDF and it will show on the student Notes page straight away.',
+    nowPaid: 'Now behind the paywall — only students with a Notes plan can open it',
+    nowFree: 'Now a free sample — any signed-in student can read it',
+  },
+  guidelines: {
+    heading: 'Guideline Updates',
+    intro: 'PDFs shown on the student Guideline Updates page, open to anyone with any plan. Switch on "Free for everyone" to open one to every signed-in student, and off again to put it back behind a plan.',
+    upload: 'Upload PDF',
+    freeColumn: 'Free for everyone',
+    empty: 'Upload a PDF and it will show on the student Guideline Updates page straight away.',
+    nowPaid: 'Now for plan holders only — any plan unlocks it',
+    nowFree: 'Now free — any signed-in student can read it',
+  },
+};
+
+export const AdminNotes = ({ collection = 'notes' }) => {
+  const copy = COPY[collection];
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -117,14 +140,14 @@ export const AdminNotes = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getNotesAdmin();
+      const res = await getNotesAdmin(collection);
       setNotes(res.data ?? []);
     } catch (err) {
       notify('error', errorMessage(err, 'Could not load notes'));
     } finally {
       setLoading(false);
     }
-  }, [notify]);
+  }, [notify, collection]);
 
   useEffect(() => {
     load();
@@ -159,6 +182,7 @@ export const AdminNotes = () => {
     // clearing it.
     const body = new FormData();
     body.append('file', uploadForm.file);
+    body.append('collection', collection);
     if (uploadForm.title.trim()) body.append('title', uploadForm.title.trim());
     if (uploadForm.description.trim()) body.append('description', uploadForm.description.trim());
     if (uploadForm.sort_order !== '') body.append('sort_order', uploadForm.sort_order);
@@ -278,9 +302,7 @@ export const AdminNotes = () => {
       );
       notify(
         'success',
-        note.is_free
-          ? 'Now behind the paywall — only students with a Notes plan can open it'
-          : 'Now a free sample — any signed-in student can read it'
+        note.is_free ? copy.nowPaid : copy.nowFree
       );
     } catch (err) {
       notify('error', errorMessage(err, 'Could not change access'));
@@ -306,18 +328,15 @@ export const AdminNotes = () => {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Notes</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            PDFs shown to students on their Notes page. Uploads appear immediately and are
-            paid by default — switch on "Free sample" to open one to everyone.
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">{copy.heading}</h1>
+          <p className="text-sm text-slate-500 mt-1">{copy.intro}</p>
         </div>
         <button
           onClick={() => setUploadOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-medium hover:opacity-90 transition"
         >
           <Plus className="w-4 h-4" />
-          Upload note
+          {copy.upload}
         </button>
       </div>
 
@@ -329,7 +348,7 @@ export const AdminNotes = () => {
             <FileText className="w-8 h-8 text-slate-300 mb-3" />
             <p className="text-sm text-slate-500">No notes yet.</p>
             <p className="text-xs text-slate-400 mt-1">
-              Upload a PDF and it will show on the student Notes page straight away.
+              {copy.empty}
             </p>
           </div>
         ) : (
@@ -341,7 +360,7 @@ export const AdminNotes = () => {
                   <th className="text-left font-medium px-5 py-3">Size</th>
                   <th className="text-left font-medium px-5 py-3">Pages</th>
                   <th className="text-left font-medium px-5 py-3">Order</th>
-                  <th className="text-left font-medium px-5 py-3">Free sample</th>
+                  <th className="text-left font-medium px-5 py-3">{copy.freeColumn}</th>
                   <th className="text-left font-medium px-5 py-3">Visible</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -401,7 +420,7 @@ export const AdminNotes = () => {
       <Modal
         open={uploadOpen}
         onClose={() => !saving && setUploadOpen(false)}
-        title="Upload note"
+        title={copy.upload}
         footer={
           <>
             <button

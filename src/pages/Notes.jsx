@@ -128,7 +128,7 @@ const Book = ({ note, onOpen, locked, isNew }) => (
   </button>
 );
 
-const NoteViewer = ({ note, onBack }) => {
+export const NoteViewer = ({ note, onBack, backLabel = 'Back to the shelf' }) => {
   const [data, setData] = useState(null);
   const [errored, setErrored] = useState(false);
 
@@ -152,7 +152,7 @@ const NoteViewer = ({ note, onBack }) => {
         <button
           onClick={onBack}
           className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition"
-          aria-label="Back to the shelf"
+          aria-label={backLabel}
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -168,7 +168,7 @@ const NoteViewer = ({ note, onBack }) => {
             <AlertCircle className="w-8 h-8 text-slate-300 mb-3" />
             <p className="text-sm text-slate-500">This note could not be loaded.</p>
             <button onClick={onBack} className="mt-3 text-xs font-medium text-amber-700 hover:underline">
-              Back to the shelf
+              {backLabel}
             </button>
           </div>
         ) : !data ? (

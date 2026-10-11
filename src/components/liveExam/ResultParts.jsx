@@ -17,7 +17,7 @@ export const StatTile = ({ label, value, sub }) => (
 /** Histogram of candidates by score band (10% buckets). One series, one hue. */
 export const ScoreDistribution = ({ distribution, highlightPercent = null }) => {
   const max = Math.max(1, ...distribution.map((d) => d.count));
-  const highlightBucket = highlightPercent == null ? -1 : Math.min(9, Math.floor(highlightPercent / 10));
+  const highlightBucket = highlightPercent == null ? -1 : Math.min(9, Math.max(0, Math.floor(highlightPercent / 10)));
   return (
     <div>
       <div className="flex items-end gap-[2px] h-40 border-b border-slate-200" role="img" aria-label="Number of candidates by score band">

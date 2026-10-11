@@ -190,19 +190,34 @@ const EMPTY_PRICING_TIER = {
   is_early_bird: false,
 };
 
+// The parts of the site a plan unlocks. Keys must match the backend's
+// constants/sections.js; anything else is dropped server-side.
+const SECTION_OPTIONS = [
+  { key: 'notes', label: 'Notes' },
+  { key: 'qbank', label: 'QBank' },
+  { key: 'recall', label: 'Recall' },
+  { key: 'mocks', label: 'Mock Exams' },
+];
+
 const EMPTY_COURSE = {
   title: '',
   description: '',
   duration_months: 1,
   is_active: true,
+  sections: [],
   pricing: [{ ...EMPTY_PRICING_TIER }],
   feature_ids: [],
   benefit_ids: [],
 };
 
 // ── Course Form ───────────────────────────────────────────────────────────────
-const CourseForm = ({ form, setForm, allFeatures, allBenefits, onCreateFeature, onCreateBenefit }) => {
+const CourseForm = ({ form, setForm, inheritsFrom, allFeatures, allBenefits, onCreateFeature, onCreateBenefit }) => {
   const update = (key, val) => setForm((p) => ({ ...p, [key]: val }));
+  const toggleSection = (key) =>
+    setForm((p) => ({
+      ...p,
+      sections: p.sections.includes(key) ? p.sections.filter((k) => k !== key) : [...p.sections, key],
+    }));
 
   const updatePricing = (i, key, val) =>
     setForm((p) => {
@@ -248,6 +263,42 @@ const CourseForm = ({ form, setForm, allFeatures, allBenefits, onCreateFeature, 
           />
           <FToggle label="Active" value={form.is_active} onChange={(v) => update('is_active', v)} />
         </div>
+      </div>
+
+      {/* Access */}
+      <div>
+        <h3 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-2 mb-3">
+          Unlocks
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {SECTION_OPTIONS.map(({ key, label }) => (
+            <label
+              key={key}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer',
+                form.sections.includes(key)
+                  ? 'border-blue-500 bg-blue-50 text-blue-800'
+                  : 'border-slate-300 text-slate-600'
+              )}
+            >
+              <input
+                type="checkbox"
+                className="accent-blue-600"
+                checked={form.sections.includes(key)}
+                onChange={() => toggleSection(key)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500 mt-2">
+          {inheritsFrom
+            ? `Also includes everything in "${inheritsFrom.title}". `
+            : form.sections.length === 0
+            ? 'Pick at least one — a plan that unlocks nothing cannot be granted. '
+            : ''}
+          Changes apply to new purchases and grants; existing subscribers keep what they were given.
+        </p>
       </div>
 
       {/* Pricing tiers */}
@@ -358,8 +409,7 @@ const CourseCard = ({ course, onEdit, onDelete, audToInrRate }) => {
   const pricings = course.CoursePricings ?? [];
   const features = course.Features ?? [];
   const benefits = course.Benefits ?? [];
-
-
+  const sections = SECTION_OPTIONS.filter((s) => course.sections?.includes(s.key));
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col gap-4 hover:shadow-md transition-shadow">
@@ -387,6 +437,21 @@ const CourseCard = ({ course, onEdit, onDelete, audToInrRate }) => {
               {course.duration_months} month{course.duration_months !== 1 ? 's' : ''}
             </p>
           )}
+          <div className="flex flex-wrap items-center gap-1 mt-2">
+            {sections.map((s) => (
+              <span key={s.key} className="px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700">
+                {s.label}
+              </span>
+            ))}
+            {course.inherits_from && (
+              <span className="text-xs text-slate-500">+ everything in {course.inherits_from.title}</span>
+            )}
+            {!sections.length && !course.inherits_from && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">
+                Unlocks nothing — edit to pick sections
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -636,6 +701,7 @@ export const AdminCourses = () => {
       description: course.description ?? '',
       duration_months: course.duration_months ?? 1,
       is_active: course.is_active ?? true,
+      sections: course.sections ?? [],
       pricing: course.CoursePricings?.length
         ? course.CoursePricings.map((p) => ({
             actual_price: p.actual_price ?? '',
@@ -686,6 +752,7 @@ export const AdminCourses = () => {
         description: form.description,
         duration_months: Number(form.duration_months),
         is_active: form.is_active,
+        sections: form.sections,
         pricing: form.pricing
           .filter((p) => p.actual_price || p.discounted_price || p.actual_price_aud || p.discounted_price_aud)
           .map((p) => ({
@@ -771,6 +838,7 @@ export const AdminCourses = () => {
         <CourseForm
           form={form}
           setForm={setForm}
+          inheritsFrom={editTarget?.inherits_from}
           allFeatures={allFeatures}
           allBenefits={allBenefits}
           onCreateFeature={handleCreateFeature}

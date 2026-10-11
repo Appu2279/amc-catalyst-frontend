@@ -6,10 +6,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowDown, Stethoscope, CheckCircle2, Sparkles, Users, CalendarCheck, ListChecks } from 'lucide-react';
 import { EarlyBirdSign } from '@/components/EarlyBirdSign';
 import { Glow, GLOW } from '@/components/ui/Glow';
-import { FreeMockAnnouncement } from '@/components/FreeMockAnnouncement';
 import { HeroVisual, useHeroPlayback } from '@/components/home/HeroVisual';
 import { SubjectMarquee } from '@/components/home/SubjectMarquee';
 import { FirstBatchAnnouncement } from '@/components/home/FirstBatchAnnouncement';
+import { GrandMockDiscussion } from '@/components/home/GrandMockDiscussion';
 import { FeatureBento } from '@/components/home/FeatureBento';
 import { JourneyTimeline } from '@/components/home/JourneyTimeline';
 import { Testimonials } from '@/components/home/Testimonials';
@@ -345,9 +345,9 @@ export const Home = () => (
         itself after the deadline. */}
     <FirstBatchAnnouncement />
     <Stats />
-    {/* Free international AMC 1 mock (October) — time-sensitive, so it sits
-        high on the page. */}
-    <FreeMockAnnouncement />
+    {/* 15 October Grand Mock discussion — time-sensitive, so it sits high on
+        the page. */}
+    <GrandMockDiscussion />
     <FeatureBento />
     <JourneyTimeline />
     <Testimonials />

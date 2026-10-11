@@ -194,7 +194,7 @@ export const GrandMockDiscussion = () => (
             <span className="flex flex-wrap items-center gap-3">
               <span className="text-5xl md:text-7xl text-brand-violet">FREE</span>
               <span className="flex items-center gap-2 rounded-lg bg-brand-violet/10 px-3 py-1 text-sm md:text-lg font-black uppercase tracking-widest text-brand-violet">
-                <CalendarDays className="h-5 w-5" /> 15 October
+                <CalendarDays className="h-5 w-5" /> 15 October · 7 PM IST
               </span>
             </span>
             <span className="mt-2 block text-4xl md:text-6xl">Grand Mock</span>
@@ -228,6 +228,7 @@ export const GrandMockDiscussion = () => (
               <div className="leading-tight">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Grand Mock discussion on</p>
                 <p className="text-2xl font-black text-red-600">15 OCTOBER</p>
+                <p className="mt-0.5 text-sm font-black text-slate-700">7:00 PM IST</p>
               </div>
             </div>
             <span className="hidden h-10 w-px bg-slate-200 sm:block" />

@@ -13,6 +13,7 @@ import {
   Workflow,
   BookOpen,
   Radio,
+  ScrollText,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -21,6 +22,7 @@ import { useCurrentLiveExam } from '@/hooks/useCurrentLiveExam';
 const NAV = [
   { key: 'dashboard', to: '/dashboard', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
   { key: 'notes', to: '/notes', label: 'Notes', short: 'Notes', icon: NotebookPen },
+  { key: 'guidelines', to: '/guideline-updates', label: 'Guideline Updates', short: 'Updates', icon: ScrollText },
   { key: 'qbank', to: '/qbank', label: 'QBank', short: 'QBank', icon: BookOpen },
   { key: 'recall', to: '/recall', label: 'Recall', short: 'Recall', icon: UndoDotIcon },
   { key: 'mock-exam', to: '/mock-exam', label: 'Mock Exams', short: 'Exams', icon: Trophy },
@@ -201,12 +203,12 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
               <Link
                 key={item.key}
                 to={item.to}
-                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                className={`relative flex flex-col items-center justify-center flex-1 min-w-0 py-1 px-1 rounded-xl transition-all ${
                   current ? 'text-brand-violet font-bold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${current ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                <span className="text-[10px] tracking-tight mt-0.5">{item.short}</span>
+                <span className="max-w-full truncate text-[10px] tracking-tight mt-0.5">{item.short}</span>
                 {item.comingSoon && (
                   <span className="absolute -top-1 right-1 text-[8px] font-black px-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                     Soon

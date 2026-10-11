@@ -90,7 +90,9 @@ export const createBenefit = (data) => axiosInstance.post('/benefits', data);
 export const deleteBenefit = (id) => axiosInstance.delete(`/benefits/${id}`);
 
 // ── Notes ─────────────────────────────────────────────────────────────────────
-export const getNotesAdmin = () => axiosInstance.get('/notes/admin');
+// collection: 'notes' (default) or 'guidelines' (Guideline Updates).
+export const getNotesAdmin = (collection = 'notes') =>
+  axiosInstance.get('/notes/admin', { params: { collection } });
 
 /**
  * Uploads a note PDF.

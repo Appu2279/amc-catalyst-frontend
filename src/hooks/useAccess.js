@@ -18,6 +18,8 @@ export const useAccess = () => {
   const [sections, setSections] = useState({});
   const [samples, setSamples] = useState({});
   const [subscriptions, setSubscriptions] = useState([]);
+  // Any live plan at all — unlocks Guideline Updates, which every plan includes.
+  const [hasPlan, setHasPlan] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -27,6 +29,7 @@ export const useAccess = () => {
       setSections(res.data?.sections ?? {});
       setSamples(res.data?.samples ?? {});
       setSubscriptions(res.data?.subscriptions ?? []);
+      setHasPlan(Boolean(res.data?.has_plan));
     } catch {
       // A failure here must not unlock anything: leaving sections empty means
       // the page shows locked, which is the safe direction. The gated endpoint
@@ -34,6 +37,7 @@ export const useAccess = () => {
       setSections({});
       setSamples({});
       setSubscriptions([]);
+      setHasPlan(false);
     } finally {
       setLoading(false);
     }
@@ -43,5 +47,5 @@ export const useAccess = () => {
     load();
   }, [load]);
 
-  return { sections, samples, subscriptions, loading, reload: load };
+  return { sections, samples, subscriptions, hasPlan, loading, reload: load };
 };

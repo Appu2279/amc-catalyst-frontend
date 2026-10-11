@@ -24,6 +24,7 @@ import { PaymentSubmitted } from '@/pages/PaymentSubmitted';
 import { Dashboard } from '@/pages/Dashboard';
 import { QBank } from '@/pages/Qbank';
 import { Notes } from '@/pages/Notes';
+import { GuidelineUpdates } from '@/pages/GuidelineUpdates';
 import { Recall } from '@/pages/Recall';
 import { MockExam } from '@/pages/MockExam';
 import { MockExamSession } from '@/pages/MockExamSession';
@@ -131,6 +132,8 @@ export const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/qbank" element={<QBank />} />
             <Route path="/notes" element={<Notes />} />
+            {/* Any plan unlocks it; free items open to every signed-in student. */}
+            <Route path="/guideline-updates" element={<GuidelineUpdates />} />
             <Route path="/recall" element={<Recall />} />
             <Route path="/mock-exam" element={<MockExam />} />
             <Route path="/pathway-guide" element={<RegistrationPathway />} />
@@ -158,7 +161,9 @@ export const App = () => (
             <Route path="/admin/mock-tests" element={<AdminMockTests />} />
             <Route path="/admin/mock-tests/:id" element={<AdminMockTestDetail />} />
             <Route path="/admin/courses" element={<AdminCourses />} />
-            <Route path="/admin/notes" element={<AdminNotes />} />
+            {/* Same page for both PDF collections; key resets its state on switch. */}
+            <Route path="/admin/notes" element={<AdminNotes key="notes" />} />
+            <Route path="/admin/guideline-updates" element={<AdminNotes key="guidelines" collection="guidelines" />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/payments" element={<AdminPaymentClaims />} />
             <Route path="/admin/referrals" element={<AdminReferrals />} />

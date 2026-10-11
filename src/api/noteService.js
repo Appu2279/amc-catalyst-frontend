@@ -3,6 +3,9 @@ import axiosInstance from "../lib/axiosInstance";
 // ── Study notes ───────────────────────────────────────────────────────────────
 export const getNotes = () => axiosInstance.get('/notes');
 
+// Guideline Updates share the notes storage and viewer but list separately.
+export const getGuidelineUpdates = () => axiosInstance.get('/notes', { params: { collection: 'guidelines' } });
+
 // No auth required — used on the public marketing homepage, before there is
 // an account to attach a token to. See notes/public/covers on the backend.
 export const getPublicNoteCovers = () => axiosInstance.get('/notes/public/covers');

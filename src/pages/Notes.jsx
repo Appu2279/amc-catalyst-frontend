@@ -13,6 +13,32 @@ import { useAccess } from '@/hooks/useAccess';
 
 const metaLine = (note) => (note.page_count ? `${note.page_count}p` : '');
 
+const toMb = (bytes) => (bytes / 1048576).toFixed(1);
+
+// Students on slow connections wait a long time for a large note, so the
+// loading state says how far along it is rather than spinning indefinitely.
+const NoteDownloadProgress = ({ progress }) => {
+  const percent = progress?.total ? Math.round((progress.loaded / progress.total) * 100) : null;
+
+  return (
+    <div className="h-full flex flex-col items-center justify-center px-6">
+      <Loader2 className="w-6 h-6 text-amber-600 animate-spin mb-3" />
+      {percent === null ? (
+        <p className="text-xs text-slate-400">{progress ? `Loading note… ${toMb(progress.loaded)} MB` : 'Preparing note…'}</p>
+      ) : (
+        <>
+          <div className="w-48 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+            <div className="h-full bg-amber-500 transition-[width]" style={{ width: `${percent}%` }} />
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            Loading note… {toMb(progress.loaded)} of {toMb(progress.total)} MB
+          </p>
+        </>
+      )}
+    </div>
+  );
+};
+
 // A note without a cover still gets a distinct cloth-bound colour instead of
 // every spine looking identical — picked deterministically from the id so it
 // doesn't shift on every reload. Real shelves aren't monochrome, so this
@@ -130,20 +156,22 @@ const Book = ({ note, onOpen, locked, isNew }) => (
 
 export const NoteViewer = ({ note, onBack, backLabel = 'Back to the shelf' }) => {
   const [data, setData] = useState(null);
+  const [progress, setProgress] = useState(null);
   const [errored, setErrored] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    // Aborting on close matters on a slow connection: an abandoned download
+    // would otherwise keep competing with the next note for bandwidth.
+    const controller = new AbortController();
     setData(null);
+    setProgress(null);
     setErrored(false);
 
-    getNoteFile(note.id)
-      .then((res) => !cancelled && setData(res.data))
-      .catch(() => !cancelled && setErrored(true));
+    getNoteFile(note.id, { onProgress: setProgress, signal: controller.signal })
+      .then((file) => !controller.signal.aborted && setData(file))
+      .catch(() => !controller.signal.aborted && setErrored(true));
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [note.id]);
 
   return (
@@ -172,10 +200,7 @@ export const NoteViewer = ({ note, onBack, backLabel = 'Back to the shelf' }) =>
             </button>
           </div>
         ) : !data ? (
-          <div className="h-full flex flex-col items-center justify-center">
-            <Loader2 className="w-6 h-6 text-amber-600 animate-spin mb-3" />
-            <p className="text-xs text-slate-400">Loading note…</p>
-          </div>
+          <NoteDownloadProgress progress={progress} />
         ) : (
           <PdfViewer data={data} title={note.title} />
         )}

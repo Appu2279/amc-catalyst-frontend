@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../lib/axiosInstance';
+import { clearNoteFileCache } from '../api/noteService';
 
 
 const AuthContext = createContext(undefined);
@@ -78,6 +79,7 @@ export const AuthProvider = ({ children }) => {
     setAvatarObjectUrl(null);
     localStorage.removeItem('amc_catalyst_user');
     localStorage.removeItem('amc_catalyst_token');
+    clearNoteFileCache();
   };
 
   return (

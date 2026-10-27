@@ -9,10 +9,16 @@ import { Glow, GLOW } from '@/components/ui/Glow';
 import { HeroVisual, useHeroPlayback } from '@/components/home/HeroVisual';
 import { SubjectMarquee } from '@/components/home/SubjectMarquee';
 import { FirstBatchAnnouncement } from '@/components/home/FirstBatchAnnouncement';
+import { FreeMockAnnouncement } from '@/components/FreeMockAnnouncement';
 import { GrandMockDiscussion } from '@/components/home/GrandMockDiscussion';
 import { FeatureBento } from '@/components/home/FeatureBento';
 import { JourneyTimeline } from '@/components/home/JourneyTimeline';
 import { Testimonials } from '@/components/home/Testimonials';
+
+// The homepage event slot alternates between the free mock (before the exam)
+// and the Grand Mock discussion (after it). Set to false to show the
+// discussion section again — update its date first.
+const IS_FREE_MOCK_ANNOUNCED = true;
 
 // Counts up from 0 to `end` once the element scrolls into view — for
 // reduced-motion visitors too, since a changing number isn't movement.
@@ -345,9 +351,8 @@ export const Home = () => (
         itself after the deadline. */}
     <FirstBatchAnnouncement />
     <Stats />
-    {/* 15 October Grand Mock discussion — time-sensitive, so it sits high on
-        the page. */}
-    <GrandMockDiscussion />
+    {/* Time-sensitive event, so it sits high on the page. */}
+    {IS_FREE_MOCK_ANNOUNCED ? <FreeMockAnnouncement /> : <GrandMockDiscussion />}
     <FeatureBento />
     <JourneyTimeline />
     <Testimonials />

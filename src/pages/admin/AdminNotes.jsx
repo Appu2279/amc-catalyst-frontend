@@ -94,7 +94,8 @@ const EMPTY_UPLOAD = { file: null, cover: null, title: '', description: '', sort
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-// The same page manages both PDF collections; only the wording differs.
+// The same page manages every PDF collection; only the wording differs.
+// Pathway Guide PDFs are open to every signed-in user, so they have no free switch.
 const COPY = {
   notes: {
     heading: 'Notes',
@@ -113,6 +114,13 @@ const COPY = {
     empty: 'Upload a PDF and it will show on the student Guideline Updates page straight away.',
     nowPaid: 'Now for plan holders only — any plan unlocks it',
     nowFree: 'Now free — any signed-in student can read it',
+  },
+  pathway: {
+    heading: 'Pathway Guide',
+    intro: 'PDFs shown on the student Route Map page (under Pathway Guide in the menu), such as the AMC route map. Every signed-in student can read them.',
+    upload: 'Upload PDF',
+    freeColumn: null,
+    empty: 'Upload a PDF and it will show on the student Route Map page straight away.',
   },
 };
 
@@ -360,7 +368,7 @@ export const AdminNotes = ({ collection = 'notes' }) => {
                   <th className="text-left font-medium px-5 py-3">Size</th>
                   <th className="text-left font-medium px-5 py-3">Pages</th>
                   <th className="text-left font-medium px-5 py-3">Order</th>
-                  <th className="text-left font-medium px-5 py-3">{copy.freeColumn}</th>
+                  {copy.freeColumn && <th className="text-left font-medium px-5 py-3">{copy.freeColumn}</th>}
                   <th className="text-left font-medium px-5 py-3">Visible</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -382,9 +390,11 @@ export const AdminNotes = ({ collection = 'notes' }) => {
                     {/* Free samples are readable without a plan. Everything else
                         sits behind the paywall, so this is the switch that
                         decides whether a note is product or marketing. */}
-                    <td className="px-5 py-3">
-                      <Toggle value={note.is_free} onChange={() => toggleFree(note)} />
-                    </td>
+                    {copy.freeColumn && (
+                      <td className="px-5 py-3">
+                        <Toggle value={note.is_free} onChange={() => toggleFree(note)} />
+                      </td>
+                    )}
                     <td className="px-5 py-3">
                       <Toggle value={note.is_active} onChange={() => toggleActive(note)} />
                     </td>

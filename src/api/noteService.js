@@ -6,6 +6,9 @@ export const getNotes = () => axiosInstance.get('/notes');
 // Guideline Updates share the notes storage and viewer but list separately.
 export const getGuidelineUpdates = () => axiosInstance.get('/notes', { params: { collection: 'guidelines' } });
 
+// PDFs on the Pathway Guide page (e.g. the route map), open to every signed-in user.
+export const getPathwayGuidePdfs = () => axiosInstance.get('/notes', { params: { collection: 'pathway' } });
+
 // No auth required — used on the public marketing homepage, before there is
 // an account to attach a token to. See notes/public/covers on the backend.
 export const getPublicNoteCovers = () => axiosInstance.get('/notes/public/covers');

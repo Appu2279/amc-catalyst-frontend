@@ -31,6 +31,7 @@ import { MockExamSession } from '@/pages/MockExamSession';
 import { MockExamResult } from '@/pages/MockExamResult';
 import { Profile } from '@/pages/Profile';
 import { RegistrationPathway } from '@/pages/RegistrationPathway';
+import { RouteMap } from '@/pages/RouteMap';
 import { LiveExam } from '@/pages/LiveExam';
 import { LiveExamSession } from '@/pages/LiveExamSession';
 import { LiveExamResultsIndex, LiveExamPublicResults } from '@/pages/LiveExamResults';
@@ -137,6 +138,7 @@ export const App = () => (
             <Route path="/recall" element={<Recall />} />
             <Route path="/mock-exam" element={<MockExam />} />
             <Route path="/pathway-guide" element={<RegistrationPathway />} />
+            <Route path="/pathway-guide/route-map" element={<RouteMap />} />
             {/* Live exam: open to every signed-in student, no plan needed. */}
             <Route path="/live-exam" element={<LiveExam />} />
             <Route path="/live-exam/session" element={<LiveExamSession />} />
@@ -164,6 +166,7 @@ export const App = () => (
             {/* Same page for both PDF collections; key resets its state on switch. */}
             <Route path="/admin/notes" element={<AdminNotes key="notes" />} />
             <Route path="/admin/guideline-updates" element={<AdminNotes key="guidelines" collection="guidelines" />} />
+            <Route path="/admin/pathway-guide" element={<AdminNotes key="pathway" collection="pathway" />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/payments" element={<AdminPaymentClaims />} />
             <Route path="/admin/referrals" element={<AdminReferrals />} />

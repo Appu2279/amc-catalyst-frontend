@@ -90,7 +90,7 @@ export const createBenefit = (data) => axiosInstance.post('/benefits', data);
 export const deleteBenefit = (id) => axiosInstance.delete(`/benefits/${id}`);
 
 // ── Notes ─────────────────────────────────────────────────────────────────────
-// collection: 'notes' (default) or 'guidelines' (Guideline Updates).
+// collection: 'notes' (default), 'guidelines' (Guideline Updates) or 'pathway' (Pathway Guide).
 export const getNotesAdmin = (collection = 'notes') =>
   axiosInstance.get('/notes/admin', { params: { collection } });
 

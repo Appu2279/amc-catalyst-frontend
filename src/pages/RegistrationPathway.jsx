@@ -1,6 +1,7 @@
 import React from 'react';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { Workflow, MoveHorizontal } from 'lucide-react';
+import { PathwayPageSwitch } from '@/pages/RouteMap';
 
 // ── Colours ──────────────────────────────────────────────────────────────────
 // One colour per pathway, reused for its header box, its arrows, and its
@@ -249,6 +250,8 @@ export const RegistrationPathway = () => (
   <DashboardLayout active="registration">
     <div className="min-h-full bg-slate-50 py-6 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto space-y-6">
+        <PathwayPageSwitch current="registration" />
+
         {/* ── Hero header ──────────────────────────────────────────────── */}
         <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 border border-indigo-900/50 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-72 h-72 bg-brand-violet/20 rounded-full blur-3xl pointer-events-none" />

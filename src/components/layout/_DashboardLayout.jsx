@@ -26,7 +26,16 @@ const NAV = [
   { key: 'qbank', to: '/qbank', label: 'QBank', short: 'QBank', icon: BookOpen },
   { key: 'recall', to: '/recall', label: 'Recall', short: 'Recall', icon: UndoDotIcon },
   { key: 'mock-exam', to: '/mock-exam', label: 'Mock Exams', short: 'Exams', icon: Trophy },
-  { key: 'registration', to: '/pathway-guide', label: 'Pathway Guide', short: 'Guide', icon: Workflow },
+  {
+    key: 'registration', to: '/pathway-guide', label: 'Pathway Guide', short: 'Guide', icon: Workflow,
+    // Always listed in the desktop sidebar, so students see the route map
+    // exists without opening the guide first. The mobile bar has no room for
+    // them; those pages link to each other instead.
+    children: [
+      { key: 'registration', to: '/pathway-guide', label: 'Guide' },
+      { key: 'route-map', to: '/pathway-guide/route-map', label: 'Route Map' },
+    ],
+  },
 ];
 
 // Only while an admin has a live exam switched on; otherwise the item is not
@@ -56,7 +65,8 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
 
   useEffect(() => setCollapsed(collapseNav), [collapseNav]);
 
-  const isActive = (item) => active === item.key || location.pathname === item.to;
+  const isActive = (item) =>
+    active === item.key || location.pathname === item.to || !!item.children?.some((child) => child.key === active);
 
   return (
     <div className="flex h-dvh bg-slate-50">
@@ -102,40 +112,64 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const current = isActive(item);
+            const hasChildren = !collapsed && !!item.children;
             return (
-              <Link
-                key={item.key}
-                to={item.to}
-                title={collapsed ? `${item.label}${item.comingSoon ? ' (Coming Soon)' : ''}` : undefined}
-                aria-label={collapsed ? item.label : undefined}
-                className={`flex items-center justify-between py-2.5 rounded-xl group transition-all ${
-                  collapsed ? 'justify-center px-0' : 'px-3.5'
-                } ${
-                  current
-                    ? 'text-brand-violet bg-brand-violet/10 font-bold'
-                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
-                }`}
-              >
-                <div className="flex items-center min-w-0">
-                  <Icon
-                    className={`w-5 h-5 shrink-0 ${collapsed ? '' : 'mr-3'} ${
-                      current ? 'text-brand-violet' : 'text-slate-400 group-hover:text-slate-600'
-                    }`}
-                  />
-                  {!collapsed && <span className="text-sm truncate">{item.label}</span>}
-                </div>
+              <React.Fragment key={item.key}>
+                <Link
+                  to={item.to}
+                  title={collapsed ? `${item.label}${item.comingSoon ? ' (Coming Soon)' : ''}` : undefined}
+                  aria-label={collapsed ? item.label : undefined}
+                  className={`flex items-center justify-between py-2.5 rounded-xl group transition-all ${
+                    collapsed ? 'justify-center px-0' : 'px-3.5'
+                  } ${
+                    current
+                      // With sub-items showing, the highlight goes on the sub-item instead.
+                      ? `text-brand-violet font-bold ${hasChildren ? '' : 'bg-brand-violet/10'}`
+                      : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 font-medium'
+                  }`}
+                >
+                  <div className="flex items-center min-w-0">
+                    <Icon
+                      className={`w-5 h-5 shrink-0 ${collapsed ? '' : 'mr-3'} ${
+                        current ? 'text-brand-violet' : 'text-slate-400 group-hover:text-slate-600'
+                      }`}
+                    />
+                    {!collapsed && <span className="text-sm truncate">{item.label}</span>}
+                  </div>
 
-                {!collapsed && item.comingSoon && (
-                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
-                    Soon ⏳
-                  </span>
+                  {!collapsed && item.comingSoon && (
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                      Soon ⏳
+                    </span>
+                  )}
+                  {!collapsed && item.badge && (
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${item.badge.className}`}>
+                      {item.badge.text}
+                    </span>
+                  )}
+                </Link>
+                {hasChildren && (
+                  <div className="ml-[1.4rem] space-y-1 border-l border-slate-200 pl-3">
+                    {item.children.map((child) => {
+                      const isChildCurrent = active === child.key;
+                      return (
+                        <Link
+                          key={child.key}
+                          to={child.to}
+                          aria-current={isChildCurrent ? 'page' : undefined}
+                          className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                            isChildCurrent
+                              ? 'bg-brand-violet/10 font-bold text-brand-violet'
+                              : 'font-medium text-slate-500 hover:bg-slate-100/80 hover:text-slate-900'
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 )}
-                {!collapsed && item.badge && (
-                  <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${item.badge.className}`}>
-                    {item.badge.text}
-                  </span>
-                )}
-              </Link>
+              </React.Fragment>
             );
           })}
         </nav>

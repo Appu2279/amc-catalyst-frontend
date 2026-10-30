@@ -6,7 +6,6 @@ import { getCourses, getPricingConfig } from '../api/courseService';
 import { useAuth } from '@/context/AuthContext';
 import { AMCNotesIndex } from '@/components/AMCNotesIndex';
 import { CourseAnnouncement } from '@/components/CourseAnnouncement';
-import { EarlyBirdTag } from '@/components/EarlyBirdTag';
 import { formatAud, formatAudAmount } from '@/lib/currency';
 
 // Static supporting copy from the client's sheet — presentation only, so it is
@@ -94,7 +93,6 @@ const PlanCard = ({ course, index, audToInrRate }) => {
       </h3>
 
       <div className="mt-5 text-center">
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Early Bird</p>
         {hasAud ? (
           <>
             <p className="text-4xl font-black tracking-tighter text-brand-dark">
@@ -205,10 +203,6 @@ export const Pricing = () => {
     <div className="relative overflow-hidden bg-white py-24">
       <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-brand-blue via-brand-violet to-brand-gold opacity-50" />
 
-      {/* Wide screens: hangs from the top bar beside the heading. Narrower
-          screens have no room there, so it hangs from the pill below instead. */}
-      <EarlyBirdTag stringHeight={110} className="hidden lg:flex absolute top-0 right-[8%] z-10" />
-
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mx-auto max-w-2xl text-center">
@@ -224,7 +218,6 @@ export const Pricing = () => {
           <span className="mt-8 inline-block rounded-full bg-brand-violet/10 px-6 py-2 text-xs font-black uppercase tracking-widest text-brand-violet">
             All plans include 6 months of access
           </span>
-          <EarlyBirdTag stringHeight={16} className="flex lg:hidden" />
         </div>
 
         {/* Plans */}
@@ -297,14 +290,6 @@ export const Pricing = () => {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="mt-12 flex items-center justify-center gap-4 text-slate-300">
-          <span className="h-px w-12 bg-slate-200" />
-          <p className="text-xs font-bold uppercase tracking-widest">
-            Early Bird offer is for a limited time only
-          </p>
-          <span className="h-px w-12 bg-slate-200" />
         </div>
       </div>
     </div>

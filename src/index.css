@@ -100,7 +100,7 @@ body {
    light/dark ends of each accent hue) swap ends, so `bg-slate-50` becomes a
    dark surface and `text-slate-900` / `text-brand-dark` become light text.
    Sections that are dark by design in both themes (the "how it works" band,
-   footer, notes index banner, early-bird badges…) carry `.theme-fixed`, which
+   footer, notes index banner…) carry `.theme-fixed`, which
    restores the stock values so they render exactly as in light mode.
    Use a dark: variant only where a remap can't express it (e.g. bg-white,
    which shares its token with text-white). */

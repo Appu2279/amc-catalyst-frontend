@@ -4,11 +4,9 @@ import {
 } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowDown, Stethoscope, CheckCircle2, Sparkles, Users, CalendarCheck, ListChecks } from 'lucide-react';
-import { EarlyBirdSign } from '@/components/EarlyBirdSign';
 import { Glow, GLOW } from '@/components/ui/Glow';
 import { HeroVisual, useHeroPlayback } from '@/components/home/HeroVisual';
 import { SubjectMarquee } from '@/components/home/SubjectMarquee';
-import { FirstBatchAnnouncement } from '@/components/home/FirstBatchAnnouncement';
 import { FreeMockAnnouncement } from '@/components/FreeMockAnnouncement';
 import { GrandMockDiscussion } from '@/components/home/GrandMockDiscussion';
 import { FeatureBento } from '@/components/home/FeatureBento';
@@ -256,7 +254,6 @@ const Hero = () => {
         <HeroCopy mode={playback.mode} />
 
         <div className="relative">
-          <EarlyBirdSign className="absolute -top-14 right-2 z-30" />
           <HeroVisual mx={mx} my={my} playback={playback} />
         </div>
       </div>
@@ -347,9 +344,6 @@ export const Home = () => (
   <div className="bg-white selection:bg-brand-violet/20">
     <Hero />
     <SubjectMarquee />
-    {/* First batch: 15 Oct discussion class + early-bird countdown. Hides
-        itself after the deadline. */}
-    <FirstBatchAnnouncement />
     <Stats />
     {/* Time-sensitive event, so it sits high on the page. */}
     {IS_FREE_MOCK_ANNOUNCED ? <FreeMockAnnouncement /> : <GrandMockDiscussion />}

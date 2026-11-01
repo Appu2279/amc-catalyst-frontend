@@ -23,6 +23,7 @@ import { PaymentSubmitted } from '@/pages/PaymentSubmitted';
 // User dashboard pages
 import { Dashboard } from '@/pages/Dashboard';
 import { QBank } from '@/pages/Qbank';
+import { Flashcards } from '@/pages/Flashcards';
 import { Notes } from '@/pages/Notes';
 import { GuidelineUpdates } from '@/pages/GuidelineUpdates';
 import { Recall } from '@/pages/Recall';
@@ -136,6 +137,7 @@ export const App = () => (
             {/* Any plan unlocks it; free items open to every signed-in student. */}
             <Route path="/guideline-updates" element={<GuidelineUpdates />} />
             <Route path="/recall" element={<Recall />} />
+            <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/mock-exam" element={<MockExam />} />
             <Route path="/pathway-guide" element={<RegistrationPathway />} />
             <Route path="/pathway-guide/route-map" element={<RouteMap />} />

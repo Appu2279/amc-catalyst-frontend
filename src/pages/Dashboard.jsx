@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { PlanStatus } from '@/components/PlanStatus';
+import { FlashcardsTodayCard } from '@/components/flashcards/FlashcardsTodayCard';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -216,6 +217,8 @@ export const Dashboard = () => {
 
         {/* Plan Access Status */}
         <PlanStatus subscriptions={subscriptions} loading={accessLoading} />
+
+        <FlashcardsTodayCard />
 
         {/* ── Stat cards grid ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -137,3 +137,7 @@ export const submitPaymentClaim = (id, { utr, amount_claimed, screenshot }) => {
 // Enter a referral code by hand (checkout), for buyers who did not arrive on a
 // referral link. Only before their first approved payment.
 export const applyReferralCode = (code) => axiosInstance.post('/me/referral/apply', { code });
+
+// The flashcards deck. Every signed-in student gets the outline; cards come
+// back only for free topics unless their plan includes Flashcards.
+export const getFlashcardDeck = () => axiosInstance.get('/flashcards');

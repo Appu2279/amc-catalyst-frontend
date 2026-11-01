@@ -86,6 +86,7 @@ const SECTION_LABELS = {
   qbank: 'QBank',
   recall: 'Recalls',
   mocks: 'Mock Exams',
+  flashcards: 'Flashcards',
 };
 
 const MembershipCard = () => {

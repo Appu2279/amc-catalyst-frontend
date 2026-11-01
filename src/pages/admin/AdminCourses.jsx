@@ -197,6 +197,7 @@ const SECTION_OPTIONS = [
   { key: 'qbank', label: 'QBank' },
   { key: 'recall', label: 'Recall' },
   { key: 'mocks', label: 'Mock Exams' },
+  { key: 'flashcards', label: 'Flashcards' },
 ];
 
 const EMPTY_COURSE = {

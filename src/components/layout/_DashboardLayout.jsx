@@ -14,6 +14,7 @@ import {
   BookOpen,
   Radio,
   ScrollText,
+  Layers,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -25,6 +26,10 @@ const NAV = [
   { key: 'guidelines', to: '/guideline-updates', label: 'Guideline Updates', short: 'Updates', icon: ScrollText },
   { key: 'qbank', to: '/qbank', label: 'QBank', short: 'QBank', icon: BookOpen },
   { key: 'recall', to: '/recall', label: 'Recall', short: 'Recall', icon: UndoDotIcon },
+  {
+    key: 'flashcards', to: '/flashcards', label: 'Flashcards', short: 'Cards', icon: Layers,
+    badge: { text: 'New', className: 'bg-violet-100 text-violet-800 border-violet-300' },
+  },
   { key: 'mock-exam', to: '/mock-exam', label: 'Mock Exams', short: 'Exams', icon: Trophy },
   {
     key: 'registration', to: '/pathway-guide', label: 'Pathway Guide', short: 'Guide', icon: Workflow,

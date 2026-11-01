@@ -201,4 +201,15 @@ export const LOCKED_COPY = {
       'Review every answer',
     ],
   },
+  flashcards: {
+    section: 'flashcards',
+    title: '930+ flashcards covering every AMC learning point',
+    body: 'Question on the front, learning point on the back — with a flowchart for every topic.',
+    highlights: [
+      '50 subjects, 167 topics',
+      'Flowchart for every topic',
+      'Guideline updates flagged',
+      'Mark what you know, review the rest',
+    ],
+  },
 };

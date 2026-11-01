@@ -36,6 +36,11 @@ export const getQuestionById = (id)     => axiosInstance.get(`/questions/${id}`)
 // Called only after student picks an option — backend reveals is_correct + explanations
 export const checkAnswer     = (id, data) => axiosInstance.post(`/questions/${id}/check`, data);
 
+// An already-answered question's reveal (the student's pick, the correct answer
+// and explanations) without answering again — for reviewing a finished set.
+// 404 when the student has not answered it in this practice scope.
+export const getAnswerReview = (id, params) => axiosInstance.get(`/questions/${id}/review`, { params });
+
 // Which practice questions this student has already answered, so Recall can
 // resume where they stopped — including after logging out or moving device.
 // Returns answered question ids rather than a position; see the note in

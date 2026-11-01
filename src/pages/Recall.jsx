@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
-import { getQuestions, getSubjectsPublic, checkAnswer, getPracticeProgress, resetPracticeProgress, getQuestionBatches } from '@/api/userService';
+import { getQuestions, getSubjectsPublic, checkAnswer, getAnswerReview, getPracticeProgress, resetPracticeProgress, getQuestionBatches } from '@/api/userService';
 import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
-import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb, Layers, ArrowRight, CheckCircle2, Sparkles, Lock } from 'lucide-react';
+import { Check, X, ChevronLeft, ChevronRight, RefreshCw, SlidersHorizontal, Lightbulb, Layers, ArrowRight, CheckCircle2, Sparkles, Lock, BookOpen, LayoutGrid } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { LockedSection, LOCKED_COPY } from '@/components/LockedSection';
 import { SampleBanner } from '@/components/SampleBanner';
+import { QuestionGrid } from '@/components/QuestionGrid';
 
 const DIFFICULTIES = ['', 'easy', 'medium', 'hard'];
 
@@ -67,6 +68,14 @@ export const Recall = () => {
   // would reset to zero on every visit.
   const [answered, setAnswered]       = useState({});
   const [resuming, setResuming]       = useState(false);
+  // True while an already-answered question's earlier answer is being fetched,
+  // so its options cannot be clicked and re-answered in the meantime.
+  const [loadingReview, setLoadingReview] = useState(false);
+  const [isGridOpen, setIsGridOpen]   = useState(false);
+  // Steps through only the questions answered wrong, which is usually what a
+  // student wants to study once a long set is done. Read-only review, unlike
+  // QBank's "Redo incorrect", which is a fresh attempt.
+  const [isIncorrectOnly, setIsIncorrectOnly] = useState(false);
   // Two-step confirm: clearing progress is not undoable, and a stray click on a
   // single button would wipe a student's place in a 146-question set.
   // Recall is grouped by the month it was uploaded ("August Recall 2026").
@@ -169,6 +178,35 @@ export const Recall = () => {
   }, [loadQuestions, batchesLoaded, batchId]);
 
   const q = questions[currentIdx];
+  const isAnsweredBefore = Boolean(q) && q.id in answered;
+
+  // An answered question opens with the student's earlier answer and every
+  // explanation already shown, instead of blank. That is what makes a finished
+  // set something they can come back to and learn from, rather than having to
+  // answer all of it again to see the answers. Start over clears this.
+  useEffect(() => {
+    if (loading || checked || !isAnsweredBefore) return;
+    let isCancelled = false;
+    setLoadingReview(true);
+    getAnswerReview(q.id)
+      .then((res) => {
+        if (isCancelled) return;
+        const review = res.data?.data;
+        setSelectedId(review.selected_option_id);
+        setCheckResult(review);
+        setChecked(true);
+      })
+      // If the review cannot be loaded the question is simply left open to
+      // answer again, which records a fresh result.
+      .catch(() => {})
+      .finally(() => { if (!isCancelled) setLoadingReview(false); });
+    return () => {
+      isCancelled = true;
+      setLoadingReview(false);
+    };
+    // Keyed on the question id, not the whole question object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, checked, isAnsweredBefore, q?.id]);
 
   // Restricted to the questions currently listed, so the tally matches the
   // "of N" the student is looking at when a filter is applied.
@@ -182,6 +220,11 @@ export const Recall = () => {
     return { correct, wrong };
   }, [questions, answered]);
 
+  const isSetComplete = questions.length > 0 && score.correct + score.wrong === questions.length;
+  // Only the review response carries the student's earlier pick; a fresh
+  // /check response does not.
+  const isReviewing = checked && checkResult?.selected_option_id !== undefined;
+
   // These come from the /check response — never sent with the question list
   const isCorrect = checkResult?.is_correct;
   const correctOpt = checkResult?.options?.find(o => o.is_correct);
@@ -193,7 +236,7 @@ export const Recall = () => {
 
   // Click → POST /questions/:id/check → reveal
   const handleSelect = async (optId) => {
-    if (checked || checking) return;
+    if (checked || checking || loadingReview) return;
     setSelectedId(optId);
     setChecking(true);
     try {
@@ -224,6 +267,7 @@ export const Recall = () => {
       setCheckResult(null);
       setResuming(false);
       setConfirmReset(false);
+      setIsIncorrectOnly(false);
     } catch {
       // Left on screen with the confirm still open so the student can retry.
     } finally {
@@ -231,15 +275,39 @@ export const Recall = () => {
     }
   };
 
-  const go = (dir) => {
-    const next = currentIdx + dir;
-    if (next < 0 || next >= questions.length) return;
+  // With "Incorrect only" on, Prev and Next step between wrong answers only.
+  const findNeighbourIdx = (dir) => {
+    for (let i = currentIdx + dir; i >= 0 && i < questions.length; i += dir) {
+      if (!isIncorrectOnly || answered[questions[i].id] === false) return i;
+    }
+    return -1;
+  };
+  const prevIdx = findNeighbourIdx(-1);
+  const nextIdx = findNeighbourIdx(1);
+
+  const jumpTo = (idx) => {
+    if (idx < 0 || idx >= questions.length || idx === currentIdx) return;
     setResuming(false);
-    setCurrentIdx(next);
+    setCurrentIdx(idx);
     setSelectedId(null);
     setChecked(false);
     setCheckResult(null);
   };
+
+  const go = (dir) => jumpTo(dir < 0 ? prevIdx : nextIdx);
+
+  const toggleIncorrectOnly = () => {
+    const isTurningOn = !isIncorrectOnly;
+    setIsIncorrectOnly(isTurningOn);
+    if (isTurningOn && answered[questions[currentIdx].id] !== false) {
+      jumpTo(questions.findIndex((item) => answered[item.id] === false));
+    }
+  };
+
+  // "3 of 12" within the wrong answers, shown while the filter is on.
+  const incorrectPosition = isIncorrectOnly
+    ? questions.slice(0, currentIdx + 1).filter((item) => answered[item.id] === false).length
+    : 0;
 
   const images = q
     ? (q.question_images?.length ? q.question_images : q.question_image ? [q.question_image] : [])
@@ -445,7 +513,7 @@ export const Recall = () => {
                           onClick={() => setBatchId(b.id)}
                           className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
                         >
-                          {done > 0 && !complete ? 'Continue' : done > 0 ? 'Practise again' : 'Start practising'}
+                          {complete ? 'Review answers' : done > 0 ? 'Continue' : 'Start practising'}
                           <ArrowRight className="w-4 h-4" />
                         </button>
                       ) : (
@@ -533,6 +601,8 @@ export const Recall = () => {
                   setCheckResult(null);
                   setResuming(false);
                   setConfirmReset(false);
+                  setIsIncorrectOnly(false);
+                  setIsGridOpen(false);
                 }}
                 className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
               >
@@ -562,7 +632,20 @@ export const Recall = () => {
                 {/* Resumed-from-last-time notice. Shown only until the student
                     moves, so it explains why practice did not open on question 1
                     without becoming permanent furniture. */}
-                {resuming && (
+                {/* A finished set stays reviewable until the student chooses to
+                    start over, so they can come back and learn from it. */}
+                {isSetComplete && (
+                  <div className="px-5 py-2.5 bg-green-50 border-b border-green-100 flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                    <p className="text-xs text-slate-600">
+                      Set complete — you got{' '}
+                      <strong className="text-slate-700">{score.correct}</strong> of {questions.length} right.
+                      Your answers and explanations stay here to review anytime. Use Start over to attempt it again.
+                    </p>
+                  </div>
+                )}
+
+                {resuming && !isSetComplete && (
                   <div className="px-5 py-2.5 bg-brand-blue/5 border-b border-brand-blue/10 flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 text-brand-blue shrink-0" />
                     <p className="text-xs text-slate-600">
@@ -619,6 +702,30 @@ export const Recall = () => {
                       </span>
                     )} */}
                   </div>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setIsGridOpen((v) => !v)}
+                      className={`flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                        isGridOpen ? 'bg-slate-800 text-white border-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3 h-3" />
+                      All questions
+                    </button>
+                    {(isIncorrectOnly || score.wrong > 0) && (
+                      <button
+                        onClick={toggleIncorrectOnly}
+                        className={`flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                          isIncorrectOnly ? 'bg-red-600 text-white border-red-600' : 'border-red-200 text-red-600 hover:bg-red-50'
+                        }`}
+                      >
+                        <X className="w-3 h-3" />
+                        {isIncorrectOnly
+                          ? `Incorrect only · ${incorrectPosition} of ${score.wrong}`
+                          : `Review ${score.wrong} incorrect`}
+                      </button>
+                    )}
+                  </div>
                   <div className="w-full bg-slate-100 rounded-full h-1">
                     <div
                       className="bg-brand-blue h-1 rounded-full transition-all duration-500"
@@ -626,6 +733,19 @@ export const Recall = () => {
                     />
                   </div>
                 </div>
+
+                {isGridOpen && (
+                  <QuestionGrid
+                    ids={questions.map((item) => item.id)}
+                    answered={answered}
+                    currentIdx={currentIdx}
+                    isIncorrectOnly={isIncorrectOnly}
+                    onJump={(idx) => {
+                      jumpTo(idx);
+                      setIsGridOpen(false);
+                    }}
+                  />
+                )}
 
                 <div className="px-5 py-4">
 
@@ -652,8 +772,14 @@ export const Recall = () => {
                   {/* Hint before selection */}
                   {!checked && !checking && (
                     <p className="text-xs text-slate-400 mb-3 italic">
-                      Select an option — explanations will be revealed instantly
+                      {loadingReview
+                        ? 'Loading your earlier answer…'
+                        : 'Select an option — explanations will be revealed instantly'}
                     </p>
+                  )}
+
+                  {isReviewing && (
+                    <p className="text-xs text-slate-400 mb-2">You answered this earlier.</p>
                   )}
 
                   {/* Result banner */}
@@ -706,7 +832,7 @@ export const Recall = () => {
                         <button
                           key={opt.id}
                           onClick={() => handleSelect(opt.id)}
-                          disabled={checking || checked}
+                          disabled={checking || checked || loadingReview}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all duration-200 ${cardCls}`}
                         >
                           {/* Key badge — shows spinner while this option is being checked */}
@@ -797,7 +923,7 @@ export const Recall = () => {
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <button
                       onClick={() => go(-1)}
-                      disabled={currentIdx === 0}
+                      disabled={prevIdx === -1}
                       className="flex items-center gap-1 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" /> Prev
@@ -805,7 +931,7 @@ export const Recall = () => {
 
                     <button
                       onClick={() => go(1)}
-                      disabled={!checked || currentIdx === questions.length - 1}
+                      disabled={!checked || nextIdx === -1}
                       className="px-5 py-2 text-sm font-semibold bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
                     >
                       Next Question
@@ -813,7 +939,7 @@ export const Recall = () => {
 
                     <button
                       onClick={() => go(1)}
-                      disabled={currentIdx === questions.length - 1}
+                      disabled={nextIdx === -1}
                       className="flex items-center gap-1 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       Skip <ChevronRight className="w-4 h-4" />

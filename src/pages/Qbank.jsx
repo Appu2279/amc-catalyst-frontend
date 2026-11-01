@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import {
-  getQuestions, getQuestionById, checkAnswer,
+  getQuestions, getQuestionById, checkAnswer, getAnswerReview,
   getPracticeProgress, resetPracticeProgress, getQuestionSubjects, getQuestionTopics, getQuestionIds,
   addBookmark, removeBookmark,
 } from '@/api/userService';
@@ -10,10 +10,11 @@ import { ProtectedImage } from '@/components/ProtectedImage';
 import { Lightbox } from '@/components/ui/Lightbox';
 import {
   Check, X, ChevronLeft, ChevronRight, RefreshCw, Lightbulb, Layers,
-  ArrowRight, CheckCircle2, Sparkles, Lock, Bookmark, RotateCcw,
+  ArrowRight, CheckCircle2, Sparkles, Lock, Bookmark, RotateCcw, BookOpen, LayoutGrid,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { SampleBanner } from '@/components/SampleBanner';
+import { QuestionGrid } from '@/components/QuestionGrid';
 
 // Splits explanation text on bullet-like separators — same set Recall uses.
 const BULLET_RE = /[•‣⁃·▪▫●○■□▸►∙≡☰☱☲]+/g;
@@ -107,7 +108,7 @@ const SubjectCard = ({ title, subtitle, total, available, answered, correct, has
           onClick={onOpen}
           className="mt-auto w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition-colors"
         >
-          {answered > 0 && !isComplete ? 'Continue' : answered > 0 ? 'Practise again' : 'Start practising'}
+          {isComplete ? 'Review answers' : answered > 0 ? 'Continue' : 'Start practising'}
           <ArrowRight className="w-4 h-4" />
         </button>
       )}
@@ -155,6 +156,14 @@ export const QBank = () => {
   const [checkResult, setCheckResult] = useState(null);
   const [answered, setAnswered]       = useState({});
   const [resuming, setResuming]       = useState(false);
+  // True while an already-answered question's earlier answer is being fetched,
+  // so its options cannot be clicked and re-answered in the meantime.
+  const [loadingReview, setLoadingReview] = useState(false);
+  const [isGridOpen, setIsGridOpen]   = useState(false);
+  // Steps through only the questions answered wrong, which is usually what a
+  // student wants to study once a long set is done. Read-only review, unlike
+  // QBank's "Redo incorrect", which is a fresh attempt.
+  const [isIncorrectOnly, setIsIncorrectOnly] = useState(false);
 
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting]     = useState(false);
@@ -256,6 +265,37 @@ export const QBank = () => {
 
   const currentId = questionIds[currentIdx];
   const q = currentId ? questionsById[currentId] : undefined;
+  // Redo-incorrect and bookmarked runs start with nothing answered, so they
+  // stay a fresh attempt rather than opening in review.
+  const isAnsweredBefore = Boolean(currentId) && currentId in answered;
+
+  // An answered question opens with the student's earlier answer and every
+  // explanation already shown, instead of blank. That is what makes a finished
+  // subject something they can come back to and learn from, rather than having
+  // to answer all of it again to see the answers. Start over clears this.
+  useEffect(() => {
+    if (loading || checked || !isAnsweredBefore) return;
+    let isCancelled = false;
+    setLoadingReview(true);
+    getAnswerReview(currentId, { practice_scope: practiceScope })
+      .then((res) => {
+        if (isCancelled) return;
+        const review = res.data?.data;
+        setSelectedId(review.selected_option_id);
+        setCheckResult(review);
+        setChecked(true);
+      })
+      // If the review cannot be loaded the question is simply left open to
+      // answer again, which records a fresh result.
+      .catch(() => {})
+      .finally(() => { if (!isCancelled) setLoadingReview(false); });
+    return () => {
+      isCancelled = true;
+      setLoadingReview(false);
+    };
+    // practiceScope is derived from subjectId and only, which reload the list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, checked, isAnsweredBefore, currentId]);
 
   // Fetch the page holding the current question when it is not loaded yet.
   // Pages line up with the id list: same filter, same order.
@@ -296,6 +336,11 @@ export const QBank = () => {
     return { correct, wrong };
   }, [questionIds, answered]);
 
+  const isSetComplete = !only && questionIds.length > 0 && score.correct + score.wrong === questionIds.length;
+  // Only the review response carries the student's earlier pick; a fresh
+  // /check response does not.
+  const isReviewing = checked && checkResult?.selected_option_id !== undefined;
+
   const isCorrect = checkResult?.is_correct;
   const correctOpt = checkResult?.options?.find((o) => o.is_correct);
   const revealMap = checkResult
@@ -303,7 +348,7 @@ export const QBank = () => {
     : {};
 
   const handleSelect = async (optId) => {
-    if (checked || checking) return;
+    if (checked || checking || loadingReview) return;
     setSelectedId(optId);
     setChecking(true);
     try {
@@ -345,19 +390,44 @@ export const QBank = () => {
       setCheckResult(null);
       setResuming(false);
       setConfirmReset(false);
+      setIsIncorrectOnly(false);
     } catch { /* left on screen to retry */ }
     finally { setResetting(false); }
   };
 
-  const go = (dir) => {
-    const next = currentIdx + dir;
-    if (next < 0 || next >= questionIds.length) return;
+  // With "Incorrect only" on, Prev and Next step between wrong answers only.
+  const findNeighbourIdx = (dir) => {
+    for (let i = currentIdx + dir; i >= 0 && i < questionIds.length; i += dir) {
+      if (!isIncorrectOnly || answered[questionIds[i]] === false) return i;
+    }
+    return -1;
+  };
+  const prevIdx = findNeighbourIdx(-1);
+  const nextIdx = findNeighbourIdx(1);
+
+  const jumpTo = (idx) => {
+    if (idx < 0 || idx >= questionIds.length || idx === currentIdx) return;
     setResuming(false);
-    setCurrentIdx(next);
+    setCurrentIdx(idx);
     setSelectedId(null);
     setChecked(false);
     setCheckResult(null);
   };
+
+  const go = (dir) => jumpTo(dir < 0 ? prevIdx : nextIdx);
+
+  const toggleIncorrectOnly = () => {
+    const isTurningOn = !isIncorrectOnly;
+    setIsIncorrectOnly(isTurningOn);
+    if (isTurningOn && answered[questionIds[currentIdx]] !== false) {
+      jumpTo(questionIds.findIndex((id) => answered[id] === false));
+    }
+  };
+
+  // "3 of 12" within the wrong answers, shown while the filter is on.
+  const incorrectPosition = isIncorrectOnly
+    ? questionIds.slice(0, currentIdx + 1).filter((id) => answered[id] === false).length
+    : 0;
 
   const images = q
     ? (q.question_images?.length ? q.question_images : q.question_image ? [q.question_image] : [])
@@ -591,6 +661,8 @@ export const QBank = () => {
                 setCheckResult(null);
                 setResuming(false);
                 setConfirmReset(false);
+                setIsIncorrectOnly(false);
+                setIsGridOpen(false);
               }}
               className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
             >
@@ -618,7 +690,20 @@ export const QBank = () => {
             ) : (
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
 
-                {resuming && (
+                {/* A finished set stays reviewable until the student chooses to
+                    start over, so they can come back and learn from it. */}
+                {isSetComplete && (
+                  <div className="px-5 py-2.5 bg-green-50 border-b border-green-100 flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                    <p className="text-xs text-slate-600">
+                      Set complete — you got{' '}
+                      <strong className="text-slate-700">{score.correct}</strong> of {questionIds.length} right.
+                      Your answers and explanations stay here to review anytime. Use Start over to attempt it again.
+                    </p>
+                  </div>
+                )}
+
+                {resuming && !isSetComplete && (
                   <div className="px-5 py-2.5 bg-brand-blue/5 border-b border-brand-blue/10 flex items-center gap-2">
                     <RefreshCw className="w-3.5 h-3.5 text-brand-blue shrink-0" />
                     <p className="text-xs text-slate-600">
@@ -678,6 +763,30 @@ export const QBank = () => {
                       )
                     )}
                   </div>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setIsGridOpen((v) => !v)}
+                      className={`flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                        isGridOpen ? 'bg-slate-800 text-white border-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3 h-3" />
+                      All questions
+                    </button>
+                    {!only && (isIncorrectOnly || score.wrong > 0) && (
+                      <button
+                        onClick={toggleIncorrectOnly}
+                        className={`flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md border transition-colors ${
+                          isIncorrectOnly ? 'bg-red-600 text-white border-red-600' : 'border-red-200 text-red-600 hover:bg-red-50'
+                        }`}
+                      >
+                        <X className="w-3 h-3" />
+                        {isIncorrectOnly
+                          ? `Incorrect only · ${incorrectPosition} of ${score.wrong}`
+                          : `Review ${score.wrong} incorrect`}
+                      </button>
+                    )}
+                  </div>
                   <div className="w-full bg-slate-100 rounded-full h-1">
                     <div
                       className="bg-brand-blue h-1 rounded-full transition-all duration-500"
@@ -685,6 +794,19 @@ export const QBank = () => {
                     />
                   </div>
                 </div>
+
+                {isGridOpen && (
+                  <QuestionGrid
+                    ids={questionIds}
+                    answered={answered}
+                    currentIdx={currentIdx}
+                    isIncorrectOnly={isIncorrectOnly}
+                    onJump={(idx) => {
+                      jumpTo(idx);
+                      setIsGridOpen(false);
+                    }}
+                  />
+                )}
 
                 <div className="px-5 py-4">
                   {(q.subject?.name || q.topic?.name) && (
@@ -713,8 +835,14 @@ export const QBank = () => {
 
                   {!checked && !checking && (
                     <p className="text-xs text-slate-400 mb-3 italic">
-                      Select an option — explanations will be revealed instantly
+                      {loadingReview
+                        ? 'Loading your earlier answer…'
+                        : 'Select an option — explanations will be revealed instantly'}
                     </p>
+                  )}
+
+                  {isReviewing && (
+                    <p className="text-xs text-slate-400 mb-2">You answered this earlier.</p>
                   )}
 
                   {checked && (
@@ -762,7 +890,7 @@ export const QBank = () => {
                         <button
                           key={opt.id}
                           onClick={() => handleSelect(opt.id)}
-                          disabled={checking || checked}
+                          disabled={checking || checked || loadingReview}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border-2 text-left transition-all duration-200 ${cardCls}`}
                         >
                           <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${dotCls}`}>
@@ -846,7 +974,7 @@ export const QBank = () => {
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <button
                       onClick={() => go(-1)}
-                      disabled={currentIdx === 0}
+                      disabled={prevIdx === -1}
                       className="flex items-center gap-1 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       <ChevronLeft className="w-4 h-4" /> Prev
@@ -854,7 +982,7 @@ export const QBank = () => {
 
                     <button
                       onClick={() => go(1)}
-                      disabled={!checked || currentIdx === questionIds.length - 1}
+                      disabled={!checked || nextIdx === -1}
                       className="px-5 py-2 text-sm font-semibold bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-colors"
                     >
                       Next Question
@@ -862,7 +990,7 @@ export const QBank = () => {
 
                     <button
                       onClick={() => go(1)}
-                      disabled={currentIdx === questionIds.length - 1}
+                      disabled={nextIdx === -1}
                       className="flex items-center gap-1 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       Skip <ChevronRight className="w-4 h-4" />

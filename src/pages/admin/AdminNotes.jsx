@@ -267,8 +267,10 @@ export const AdminNotes = ({ collection = 'notes' }) => {
     setCoverBusy(true);
     try {
       await uploadNoteCoverImage(editing.id, body);
-      setEditing((n) => ({ ...n, has_cover: true }));
-      setNotes((all) => all.map((n) => (n.id === editing.id ? { ...n, has_cover: true } : n)));
+      // A fresh updatedAt changes the cover URL's ?v=, so the preview skips the cached old image.
+      const coverChange = { has_cover: true, updatedAt: new Date().toISOString() };
+      setEditing((n) => ({ ...n, ...coverChange }));
+      setNotes((all) => all.map((n) => (n.id === editing.id ? { ...n, ...coverChange } : n)));
       notify('success', 'Cover image updated');
     } catch (err) {
       notify('error', errorMessage(err, 'Could not update cover image'));
@@ -561,7 +563,7 @@ export const AdminNotes = ({ collection = 'notes' }) => {
               <div className="flex items-center gap-3">
                 {editing.has_cover ? (
                   <ProtectedImage
-                    src={`/api/notes/${editing.id}/cover`}
+                    src={`/api/notes/${editing.id}/cover?v=${encodeURIComponent(editing.updatedAt ?? '')}`}
                     alt={editing.title}
                     className="w-16 h-16 rounded-lg object-cover border border-slate-200"
                   />

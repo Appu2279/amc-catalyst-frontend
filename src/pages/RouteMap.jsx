@@ -41,9 +41,10 @@ const RouteMapCard = ({ doc, onOpen }) => (
       <button
         onClick={() => onOpen(doc)}
         aria-label={`Read ${doc.title}`}
-        className="h-40 w-28 shrink-0 overflow-hidden rounded-lg border border-slate-200 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:w-64"
       >
-        <ProtectedImage src={`/api/notes/${doc.id}/cover`} alt={doc.title} className="h-full w-full object-cover" />
+        {/* Pathway covers are usually 16:9 webinar-style slides; object-contain keeps a portrait cover whole too. */}
+        <ProtectedImage src={`/api/notes/${doc.id}/cover`} alt={doc.title} className="block aspect-video w-full object-contain" />
       </button>
     ) : (
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">

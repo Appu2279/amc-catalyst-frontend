@@ -41,10 +41,10 @@ const RouteMapCard = ({ doc, onOpen }) => (
       <button
         onClick={() => onOpen(doc)}
         aria-label={`Read ${doc.title}`}
-        className="w-full shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:w-64"
+        className="w-28 shrink-0 overflow-hidden rounded-lg border border-slate-200 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
-        {/* Pathway covers are usually 16:9 webinar-style slides; object-contain keeps a portrait cover whole too. */}
-        <ProtectedImage src={`/api/notes/${doc.id}/cover`} alt={doc.title} className="block aspect-video w-full object-contain" />
+        {/* Covers are uploaded as 2:3 portrait book covers (1024×1536), same as the Notes shelf. */}
+        <ProtectedImage src={`/api/notes/${doc.id}/cover`} alt={doc.title} className="block aspect-[2/3] w-full object-cover" />
       </button>
     ) : (
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">

@@ -4,6 +4,7 @@ import { AlertCircle, BookOpenCheck, FileText, Route, Workflow } from 'lucide-re
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import { getPathwayGuidePdfs } from '@/api/noteService';
 import { NoteViewer } from '@/pages/Notes';
+import { ProtectedImage } from '@/components/ProtectedImage';
 
 const PATHWAY_PAGES = [
   { key: 'registration', to: '/pathway-guide', label: 'Guide', icon: Workflow },
@@ -36,9 +37,20 @@ export const PathwayPageSwitch = ({ current }) => (
 
 const RouteMapCard = ({ doc, onOpen }) => (
   <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-      <Route className="h-6 w-6" />
-    </span>
+    {doc.has_cover ? (
+      <button
+        onClick={() => onOpen(doc)}
+        aria-label={`Read ${doc.title}`}
+        className="w-28 shrink-0 overflow-hidden rounded-lg border border-slate-200 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      >
+        {/* Covers are uploaded as 2:3 portrait book covers (1024×1536), same as the Notes shelf. */}
+        <ProtectedImage src={`/api/notes/${doc.id}/cover?v=${encodeURIComponent(doc.updatedAt ?? '')}`} alt={doc.title} className="block aspect-[2/3] w-full object-cover" />
+      </button>
+    ) : (
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+        <Route className="h-6 w-6" />
+      </span>
+    )}
     <div className="min-w-0 flex-1">
       <h2 className="font-bold text-slate-900">{doc.title}</h2>
       {doc.description && <p className="mt-1 text-sm text-slate-500">{doc.description}</p>}

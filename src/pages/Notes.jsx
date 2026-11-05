@@ -107,7 +107,7 @@ const Book = ({ note, onOpen, locked, isNew }) => (
     {/* Cover art / cloth-bound fallback */}
     {note.has_cover ? (
       <ProtectedImage
-        src={`/api/notes/${note.id}/cover`}
+        src={`/api/notes/${note.id}/cover?v=${encodeURIComponent(note.updatedAt ?? '')}`}
         alt={note.title}
         className="w-full h-full object-cover"
       />

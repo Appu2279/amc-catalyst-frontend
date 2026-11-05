@@ -29,6 +29,7 @@ import {
 import { useAccess } from '@/hooks/useAccess';
 import { PlanStatus } from '@/components/PlanStatus';
 import { FlashcardsTodayCard } from '@/components/flashcards/FlashcardsTodayCard';
+import { ClassGroupsCard } from '@/components/ClassGroupsCard';
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ const SubjectBar = ({ name, accuracy, total, correct }) => {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export const Dashboard = () => {
-  const { subscriptions, loading: accessLoading } = useAccess();
+  const { subscriptions, sections, loading: accessLoading } = useAccess();
   const { user } = useAuth();
 
   const [loading, setLoading]       = useState(true);
@@ -217,6 +218,8 @@ export const Dashboard = () => {
 
         {/* Plan Access Status */}
         <PlanStatus subscriptions={subscriptions} loading={accessLoading} />
+
+        <ClassGroupsCard isEnabled={Boolean(sections.online_classes)} />
 
         <FlashcardsTodayCard />
 

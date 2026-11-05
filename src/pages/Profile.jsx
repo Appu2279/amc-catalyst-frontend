@@ -87,6 +87,7 @@ const SECTION_LABELS = {
   recall: 'Recalls',
   mocks: 'Mock Exams',
   flashcards: 'Flashcards',
+  online_classes: 'Online Classes',
 };
 
 const MembershipCard = () => {

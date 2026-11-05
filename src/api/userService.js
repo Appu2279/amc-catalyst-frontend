@@ -99,6 +99,9 @@ export const getAttemptResult = (attemptId)       => axiosInstance.get(`/attempt
  */
 export const getMyAccess = () => axiosInstance.get('/me/access');
 
+// Online class WhatsApp/Telegram invite links; 403 unless the plan includes online classes.
+export const getMyClassGroups = () => axiosInstance.get('/me/class-groups');
+
 // This student's payment claims, newest first. Drives the "under review" banner
 // so people stop wondering whether their transfer landed.
 export const getMyPaymentClaims = () => axiosInstance.get('/payment-claims/mine');

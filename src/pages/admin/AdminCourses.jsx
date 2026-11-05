@@ -198,6 +198,7 @@ const SECTION_OPTIONS = [
   { key: 'recall', label: 'Recall' },
   { key: 'mocks', label: 'Mock Exams' },
   { key: 'flashcards', label: 'Flashcards' },
+  { key: 'online_classes', label: 'Online classes' },
 ];
 
 const EMPTY_COURSE = {

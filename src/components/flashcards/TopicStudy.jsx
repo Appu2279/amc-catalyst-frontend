@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ArrowDown, Shuffle, RotateCcw, Eye, EyeOff, Award } from 'lucide-react';
+import { ArrowDown, Shuffle, RotateCcw, Eye, EyeOff, Award, Check } from 'lucide-react';
 import { MARKS } from '@/utils/flashcardProgress';
-import { FlipCard, GuidelineUpdate } from './FlipCard';
+import {
+  FlipCard, GuidelineUpdate, TapButton, useAnswerAnimation,
+} from './FlipCard';
+import { getSubjectColor } from './subjectColors';
 
 const TABS = [
   { key: 'cards', label: 'Flashcards' },
@@ -11,7 +14,7 @@ const TABS = [
 
 const getAllIndexes = (topic) => topic.cards.map((_, i) => i);
 
-const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
+const CardsPane = ({ topic, color, marks, onMark, onClearMarks }) => {
   const [order, setOrder] = useState(() => getAllIndexes(topic));
   const [pos, setPos] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -19,6 +22,7 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
   // Bumped on every mark so a swiped card is replaced by a fresh one even on
   // the last card, where the position does not change.
   const [markCount, setMarkCount] = useState(0);
+  const [enterFrom, setEnterFrom] = useState(null);
 
   const cardIndex = order[pos];
   const card = topic.cards[cardIndex];
@@ -36,8 +40,18 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
   const markAndAdvance = useCallback((value) => {
     onMark(cardIndex, value);
     setMarkCount((n) => n + 1);
+    setEnterFrom('fade');
     moveTo(pos + 1);
   }, [onMark, cardIndex, moveTo, pos]);
+
+  const { answeredAs, answerWithAnimation } = useAnswerAnimation(
+    (isKnown) => markAndAdvance(isKnown ? MARKS.KNOWN : MARKS.REVIEW)
+  );
+
+  const step = useCallback((delta) => {
+    setEnterFrom(delta > 0 ? 'right' : 'left');
+    moveTo(pos + delta);
+  }, [moveTo, pos]);
 
   const shuffle = () => {
     const shuffled = [...order];
@@ -46,6 +60,7 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setOrder(shuffled);
+    setEnterFrom('shuffle');
     moveTo(0);
   };
 
@@ -69,22 +84,22 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
       if (event.key === ' ') {
         event.preventDefault();
         setIsFlipped((v) => !v);
-      } else if (event.key === 'ArrowRight') moveTo(pos + 1);
-      else if (event.key === 'ArrowLeft') moveTo(pos - 1);
-      else if (event.key === 'k' || event.key === 'K') markAndAdvance(MARKS.KNOWN);
-      else if (event.key === 'r' || event.key === 'R') markAndAdvance(MARKS.REVIEW);
+      } else if (event.key === 'ArrowRight' && pos < order.length - 1) step(1);
+      else if (event.key === 'ArrowLeft' && pos > 0) step(-1);
+      else if (event.key === 'k' || event.key === 'K') answerWithAnimation(true);
+      else if (event.key === 'r' || event.key === 'R') answerWithAnimation(false);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [card, pos, moveTo, markAndAdvance]);
+  }, [card, pos, order.length, step, answerWithAnimation]);
 
   if (!card) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-8">
+      <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
         <p className="text-lg font-semibold text-slate-800">Nothing left to review in this topic.</p>
         <button
           onClick={studyAllAgain}
-          className="mt-4 px-4 py-2 text-sm font-semibold bg-brand-blue text-white rounded-lg hover:opacity-90 transition"
+          className={`mt-4 px-4 py-2 text-sm font-bold bg-gradient-to-r ${color.gradient} text-white rounded-lg shadow-sm hover:opacity-90 transition`}
         >
           Study all cards again
         </button>
@@ -95,24 +110,26 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-3 text-xs text-slate-500 tabular-nums">
-        <span className="shrink-0">Card {pos + 1} of {order.length}</span>
-        <div className="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden flex" title={`${knownCount} known, ${reviewCount} to review`}>
-          <span className="bg-green-500 h-full transition-all" style={{ width: `${(knownCount / topic.cards.length) * 100}%` }} />
-          <span className="bg-orange-400 h-full transition-all" style={{ width: `${(reviewCount / topic.cards.length) * 100}%` }} />
+        <span className={`shrink-0 rounded-full px-2.5 py-0.5 font-bold ${color.soft} ${color.text}`}>Card {pos + 1} of {order.length}</span>
+        <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden flex" title={`${knownCount} known, ${reviewCount} to review`}>
+          <span className="bg-gradient-to-r from-green-500 to-emerald-400 h-full transition-all" style={{ width: `${(knownCount / topic.cards.length) * 100}%` }} />
+          <span className="bg-gradient-to-r from-orange-400 to-amber-400 h-full transition-all" style={{ width: `${(reviewCount / topic.cards.length) * 100}%` }} />
         </div>
-        <span className="shrink-0">{knownCount} known</span>
+        <span className="shrink-0 font-semibold text-green-600">{knownCount} known</span>
       </div>
 
       <FlipCard
         key={`${cardIndex}-${pos}-${markCount}`}
         card={card}
+        enterFrom={enterFrom}
+        answeredAs={answeredAs}
         isFlipped={isFlipped}
         onFlip={() => setIsFlipped((v) => !v)}
         onSwipe={(direction) => markAndAdvance(direction === 'right' ? MARKS.KNOWN : MARKS.REVIEW)}
         frontTag={(
           <>
             <span>Question</span>
-            <span className={mark === MARKS.KNOWN ? 'text-green-600' : mark === MARKS.REVIEW ? 'text-orange-500' : ''}>
+            <span className={mark === MARKS.KNOWN ? 'text-green-300' : mark === MARKS.REVIEW ? 'text-orange-300' : ''}>
               {mark === MARKS.KNOWN ? 'Known' : mark === MARKS.REVIEW ? 'Review' : `#${cardIndex + 1}`}
             </span>
           </>
@@ -121,28 +138,28 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button onClick={() => moveTo(pos - 1)} disabled={pos === 0} className="px-3.5 py-2 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-40 transition">
+        <TapButton tap={{ scale: 0.94, x: -4 }} onClick={() => step(-1)} disabled={pos === 0} className="px-3.5 py-2 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-40 transition-colors">
           Previous
-        </button>
-        <button onClick={() => setIsFlipped((v) => !v)} className="px-3.5 py-2 text-sm font-semibold rounded-lg bg-brand-blue text-white hover:opacity-90 transition">
+        </TapButton>
+        <TapButton tap={{ scale: 0.92 }} onClick={() => setIsFlipped((v) => !v)} className="px-4 py-2 text-sm font-bold rounded-lg bg-teal-700 text-white shadow-sm hover:bg-teal-800 transition-colors">
           {isFlipped ? 'Show question' : 'Reveal answer'}
-        </button>
-        <button onClick={() => moveTo(pos + 1)} disabled={pos === order.length - 1} className="px-3.5 py-2 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-40 transition">
+        </TapButton>
+        <TapButton tap={{ scale: 0.94, x: 4 }} onClick={() => step(1)} disabled={pos === order.length - 1} className="px-3.5 py-2 text-sm font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 disabled:opacity-40 transition-colors">
           Next
-        </button>
+        </TapButton>
         <span className="flex-1" />
-        <button onClick={() => markAndAdvance(MARKS.REVIEW)} className="px-3.5 py-2 text-sm font-semibold rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 transition">
-          Review again
-        </button>
-        <button onClick={() => markAndAdvance(MARKS.KNOWN)} className="px-3.5 py-2 text-sm font-semibold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition">
-          I knew it
-        </button>
+        <TapButton tap={{ scale: 0.9, rotate: -3 }} onClick={() => answerWithAnimation(false)} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-200 hover:opacity-90 transition-opacity">
+          <RotateCcw className="w-4 h-4" /> Review again
+        </TapButton>
+        <TapButton tap={{ scale: 0.9, rotate: 3 }} onClick={() => answerWithAnimation(true)} className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm shadow-green-200 hover:opacity-90 transition-opacity">
+          <Check className="w-4 h-4" /> I knew it
+        </TapButton>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button onClick={shuffle} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 transition">
+        <TapButton tap={{ scale: 0.92, rotate: -4 }} onClick={shuffle} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 transition-colors">
           <Shuffle className="w-3.5 h-3.5" /> Shuffle
-        </button>
+        </TapButton>
         <button onClick={toggleUnknownOnly} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:border-slate-400 transition">
           {isUnknownOnly ? 'Study all cards' : 'Study cards not yet known'}
         </button>
@@ -158,7 +175,7 @@ const CardsPane = ({ topic, marks, onMark, onClearMarks }) => {
   );
 };
 
-const FlowchartPane = ({ topic }) => (
+const FlowchartPane = ({ topic, color }) => (
   <div className="max-w-3xl">
     {topic.flowchart.map((step, stepIdx) => {
       const isFirst = stepIdx === 0;
@@ -167,14 +184,14 @@ const FlowchartPane = ({ topic }) => (
         <React.Fragment key={stepIdx}>
           {stepIdx > 0 && (
             <div className="flex justify-center py-1.5" aria-hidden="true">
-              <ArrowDown className="w-4 h-4 text-slate-400" />
+              <ArrowDown className={`w-5 h-5 ${color.text}`} />
             </div>
           )}
           {/* Boxes side by side are alternative branches at that step. */}
           {step.length > 1 ? (
             <div className="grid gap-2.5 grid-cols-[repeat(auto-fit,minmax(170px,1fr))]">
               {step.map((branch) => (
-                <div key={branch} className="bg-white border border-slate-200 border-t-3 border-t-amber-500 rounded-xl px-4 py-3 text-sm text-slate-700 leading-relaxed">
+                <div key={branch} className="bg-gradient-to-b from-amber-50 to-white border border-amber-200 border-t-3 border-t-amber-500 rounded-xl px-4 py-3 text-sm text-slate-700 leading-relaxed shadow-sm">
                   {branch}
                 </div>
               ))}
@@ -183,10 +200,10 @@ const FlowchartPane = ({ topic }) => (
             <div
               className={`rounded-xl px-4 py-3 text-sm text-center leading-relaxed ${
                 isFirst
-                  ? 'bg-brand-blue text-white font-semibold'
+                  ? `bg-gradient-to-r ${color.gradient} text-white font-semibold shadow-md`
                   : isLast
-                    ? 'bg-white border-2 border-green-600 text-slate-800'
-                    : 'bg-white border border-slate-200 text-slate-700'
+                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-500 text-slate-800 font-medium'
+                    : 'bg-white border border-slate-200 text-slate-700 shadow-sm'
               }`}
             >
               {step[0]}
@@ -201,7 +218,7 @@ const FlowchartPane = ({ topic }) => (
   </div>
 );
 
-const PointsPane = ({ topic }) => {
+const PointsPane = ({ topic, color }) => {
   const [isHidingAnswers, setIsHidingAnswers] = useState(false);
   const [revealed, setRevealed] = useState(() => new Set());
 
@@ -224,8 +241,8 @@ const PointsPane = ({ topic }) => {
         {topic.cards.map((card, i) => {
           const isHidden = isHidingAnswers && !revealed.has(i);
           return (
-            <li key={i} className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 grid grid-cols-[28px_minmax(0,1fr)] gap-x-3 gap-y-1">
-              <span className="row-span-2 font-bold text-amber-600 tabular-nums">{i + 1}</span>
+            <li key={i} className="bg-white border border-slate-200 rounded-2xl px-4 py-3.5 grid grid-cols-[30px_minmax(0,1fr)] gap-x-3 gap-y-1 shadow-sm hover:shadow-md transition-shadow">
+              <span className={`row-span-2 flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold tabular-nums ${color.soft} ${color.text}`}>{i + 1}</span>
               <p className="text-sm font-semibold text-slate-800">{card.question}</p>
               <div
                 onClick={() => isHidden && setRevealed((prev) => new Set(prev).add(i))}
@@ -247,12 +264,15 @@ export const TopicStudy = ({ topic, subjectName, marks, onMark, onClearMarks }) 
   const [tab, setTab] = useState('cards');
   const updateCount = topic.cards.filter((c) => c.guidelineUpdate).length;
   const isMastered = topic.cards.every((_, i) => marks[i] === MARKS.KNOWN);
+  const color = getSubjectColor(topic.subjectIndex);
 
   return (
-    <div>
+    <div className="max-w-3xl mx-auto">
       <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600">{subjectName}</p>
+          <p className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider ${color.text}`}>
+            <span className={`w-2 h-2 rounded-sm bg-gradient-to-br ${color.gradient}`} /> {subjectName}
+          </p>
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-slate-900 mt-0.5">
             {topic.name}
             {isMastered && (
@@ -264,21 +284,21 @@ export const TopicStudy = ({ topic, subjectName, marks, onMark, onClearMarks }) 
           <p className="text-sm text-slate-500 mt-0.5">
             {topic.cards.length} cards
             {updateCount > 0 && (
-              <span className="ml-2 text-amber-600 font-semibold">
+              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700 font-bold">
                 {updateCount} guideline update{updateCount > 1 ? 's' : ''}
               </span>
             )}
           </p>
         </div>
-        <div className="flex rounded-lg border border-slate-200 bg-white p-0.5" role="tablist">
+        <div className="flex rounded-xl border border-slate-200 bg-white p-1" role="tablist">
           {TABS.map(({ key, label }) => (
             <button
               key={key}
               role="tab"
               aria-selected={tab === key}
               onClick={() => setTab(key)}
-              className={`px-3.5 py-1.5 text-sm font-medium rounded-md transition ${
-                tab === key ? 'bg-brand-blue text-white' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition ${
+                tab === key ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {label}
@@ -287,9 +307,9 @@ export const TopicStudy = ({ topic, subjectName, marks, onMark, onClearMarks }) 
         </div>
       </div>
 
-      {tab === 'cards' && <CardsPane topic={topic} marks={marks} onMark={onMark} onClearMarks={onClearMarks} />}
-      {tab === 'flowchart' && <FlowchartPane topic={topic} />}
-      {tab === 'points' && <PointsPane topic={topic} />}
+      {tab === 'cards' && <CardsPane topic={topic} color={color} marks={marks} onMark={onMark} onClearMarks={onClearMarks} />}
+      {tab === 'flowchart' && <FlowchartPane topic={topic} color={color} />}
+      {tab === 'points' && <PointsPane topic={topic} color={color} />}
     </div>
   );
 };

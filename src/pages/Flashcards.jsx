@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { DashboardLayout } from '@/components/layout/_DashboardLayout';
 import {
   ChevronRight, Search, Layers, PanelLeftClose, PanelLeftOpen, Lock, Sparkles, ArrowRight,
@@ -9,6 +10,7 @@ import { TopicStudy } from '@/components/flashcards/TopicStudy';
 import { ReviewSession } from '@/components/flashcards/ReviewSession';
 import { ProgressRing } from '@/components/flashcards/ProgressRing';
 import { Celebration } from '@/components/flashcards/Celebration';
+import { getSubjectColor } from '@/components/flashcards/subjectColors';
 import { LockedSection, LOCKED_COPY } from '@/components/LockedSection';
 import { getFlashcardDeck } from '@/api/userService';
 import {
@@ -74,12 +76,12 @@ const SubjectIndex = ({ deck, progress, currentTopicId, onOpenTopic, onOpenHome 
   });
 
   const visibleSubjects = deck.subjects
-    .map((subject) => ({ ...subject, topics: subject.topics.filter((t) => matchesSearch(subject, t, query)) }))
+    .map((subject, subjectIndex) => ({ ...subject, subjectIndex, topics: subject.topics.filter((t) => matchesSearch(subject, t, query)) }))
     .filter((subject) => subject.topics.length > 0);
 
   return (
     <div className="p-3">
-      <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-brand-blue">
+      <label className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 focus-within:bg-white focus-within:ring-2 focus-within:ring-violet-400">
         <Search className="w-4 h-4 text-slate-400 shrink-0" />
         <input
           type="search"
@@ -89,8 +91,8 @@ const SubjectIndex = ({ deck, progress, currentTopicId, onOpenTopic, onOpenHome 
           className="w-full text-sm outline-none bg-transparent"
         />
       </label>
-      <button onClick={onOpenHome} className="mt-2 w-full text-left px-3 py-2 text-sm font-semibold text-brand-blue rounded-lg hover:bg-slate-100 transition">
-        All subjects overview
+      <button onClick={onOpenHome} className="mt-2 w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-violet-700 rounded-lg bg-violet-50 hover:bg-violet-100 transition">
+        <Layers className="w-4 h-4" /> All subjects overview
       </button>
 
       {visibleSubjects.length === 0 && <p className="px-3 py-2 text-sm text-slate-400">No topics match that search.</p>}
@@ -101,6 +103,7 @@ const SubjectIndex = ({ deck, progress, currentTopicId, onOpenTopic, onOpenHome 
         const isOpen = Boolean(query) || openSubjects.has(subject.name)
           || subject.topics.some((t) => t.id === currentTopicId);
         const cardCount = subject.topics.reduce((sum, t) => sum + t.card_count, 0);
+        const color = getSubjectColor(subject.subjectIndex);
         return (
           <div key={subject.name}>
             <button
@@ -109,11 +112,12 @@ const SubjectIndex = ({ deck, progress, currentTopicId, onOpenTopic, onOpenHome 
               className="w-full flex items-center gap-1.5 px-2 py-2 text-sm font-semibold text-slate-800 rounded-lg hover:bg-slate-100 transition"
             >
               <ChevronRight className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+              <span className={`w-2.5 h-2.5 rounded-sm bg-gradient-to-br ${color.gradient} shrink-0`} />
               <span className="flex-1 text-left">{subject.name}</span>
               <span className="text-xs font-normal text-slate-400 tabular-nums">{cardCount}</span>
             </button>
             {isOpen && (
-              <div className="ml-4 mb-1">
+              <div className="ml-4 mb-1 border-l-2 border-slate-100 pl-1">
                 {subject.topics.map((topic) => {
                   const { known, review, total } = getTopicStats(topic, progress);
                   const dotCls = known === total ? 'bg-green-500' : known || review ? 'bg-amber-400' : 'bg-slate-200';
@@ -122,7 +126,7 @@ const SubjectIndex = ({ deck, progress, currentTopicId, onOpenTopic, onOpenHome 
                       key={topic.id}
                       onClick={() => onOpenTopic(topic.id)}
                       className={`w-full flex items-center gap-2 px-2 py-1.5 text-[13px] text-left rounded-md transition ${
-                        topic.id === currentTopicId ? 'bg-brand-blue/10 text-brand-blue font-semibold' : 'text-slate-600 hover:bg-slate-100'
+                        topic.id === currentTopicId ? `${color.soft} ${color.text} font-semibold` : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
                       {topic.is_locked
@@ -207,7 +211,8 @@ const Overview = ({ deck, topicsById, totalCards, knownTotal, progress, todayPan
     <div className="max-w-5xl">
       {todayPanel}
 
-      <section className="bg-white border border-slate-200 rounded-2xl p-6 grid md:grid-cols-[minmax(0,1fr)_auto] gap-5 items-center mb-5">
+      <section className="relative overflow-hidden bg-white border border-slate-200 rounded-2xl p-6 grid md:grid-cols-[minmax(0,1fr)_auto] gap-5 items-center mb-5 shadow-sm">
+        <div className="absolute -bottom-20 -right-16 w-64 h-64 rounded-full bg-gradient-to-br from-amber-200/40 via-rose-200/30 to-violet-200/40 blur-2xl pointer-events-none" />
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600">AMC CAT 1 · Learning points deck</p>
           <h1 className="text-2xl font-bold text-slate-900 mt-1">
@@ -215,19 +220,23 @@ const Overview = ({ deck, topicsById, totalCards, knownTotal, progress, todayPan
               ? <>You have mastered <span className="text-green-600">{masteredPct}%</span> of AMC learning points</>
               : 'Study every learning point, subject by subject'}
           </h1>
-          <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
-            <span className="block h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-700" style={{ width: `${masteredPct}%` }} />
+          <div className="mt-3 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+            <span className="block h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-sky-400 transition-all duration-700" style={{ width: `${masteredPct}%` }} />
           </div>
           <p className="text-sm text-slate-500 mt-2 leading-relaxed">
             {knownTotal} of {totalCards} cards known. Each card asks a question on the front and gives the learning point
             on the back, and every topic has a flowchart that puts its points in clinical order.
           </p>
         </div>
-        <div className="flex gap-6 tabular-nums">
-          {[[deck.subjects.length, 'subjects'], [topicCount, 'topics'], [totalCards, 'cards']].map(([value, label]) => (
-            <div key={label} className="text-center">
-              <p className="text-2xl font-bold text-brand-blue leading-tight">{value}</p>
-              <p className="text-xs text-slate-500">{label}</p>
+        <div className="relative flex gap-2.5 tabular-nums">
+          {[
+            [deck.subjects.length, 'subjects', 'bg-violet-50 text-violet-600'],
+            [topicCount, 'topics', 'bg-sky-50 text-sky-600'],
+            [totalCards, 'cards', 'bg-amber-50 text-amber-600'],
+          ].map(([value, label, colorCls]) => (
+            <div key={label} className={`text-center rounded-xl px-4 py-2.5 ${colorCls}`}>
+              <p className="text-2xl font-black leading-tight">{value}</p>
+              <p className="text-xs font-medium text-slate-500">{label}</p>
             </div>
           ))}
         </div>
@@ -261,7 +270,7 @@ const Overview = ({ deck, topicsById, totalCards, knownTotal, progress, todayPan
             <p className="font-semibold text-slate-900">{example.subjectName} › {example.name}</p>
             <p className="text-sm text-slate-500">{example.card_count} cards plus a flowchart. Try this one first to see how the deck works.</p>
           </div>
-          <button onClick={() => onOpenTopic(example.id)} className="px-4 py-2 text-sm font-semibold bg-brand-blue text-white rounded-lg hover:opacity-90 transition">
+          <button onClick={() => onOpenTopic(example.id)} className="px-4 py-2 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg shadow-sm hover:opacity-90 transition">
             Open example
           </button>
         </div>
@@ -269,7 +278,8 @@ const Overview = ({ deck, topicsById, totalCards, knownTotal, progress, todayPan
 
       <h2 className="text-lg font-bold text-slate-900 mb-3">All subjects</h2>
       <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(250px,1fr))]">
-        {deck.subjects.map((subject) => {
+        {deck.subjects.map((subject, subjectIndex) => {
+          const color = getSubjectColor(subjectIndex);
           const total = subject.topics.reduce((sum, t) => sum + t.card_count, 0);
           const known = subject.topics.reduce((sum, t) => sum + getTopicStats(t, progress).known, 0);
           const isLocked = subject.topics.every((t) => t.is_locked);
@@ -278,23 +288,25 @@ const Overview = ({ deck, topicsById, totalCards, knownTotal, progress, todayPan
             <button
               key={subject.name}
               onClick={() => onOpenTopic(subject.topics[0].id)}
-              className={`bg-white border rounded-xl px-4 py-3.5 text-left flex gap-3 hover:shadow-sm transition ${
-                isMastered ? 'border-green-300 hover:border-green-500' : 'border-slate-200 hover:border-brand-blue'
+              className={`group relative overflow-hidden bg-white border rounded-2xl pl-5 pr-4 py-4 text-left flex gap-3 hover:shadow-lg hover:-translate-y-0.5 transition ${
+                isMastered ? 'border-green-300 hover:border-green-500' : `border-slate-200 ${color.hoverBorder}`
               }`}
             >
-              <ProgressRing value={total ? known / total : 0} size={44} strokeWidth={4}>
+              <span className={`absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b ${color.gradient}`} aria-hidden="true" />
+              <span className={`absolute -top-10 -right-10 w-28 h-28 rounded-full ${color.soft} opacity-70 group-hover:scale-125 transition-transform duration-500`} aria-hidden="true" />
+              <ProgressRing value={total ? known / total : 0} size={46} strokeWidth={4} colorClass={isMastered ? 'text-green-500' : color.ring}>
                 {isLocked
                   ? <Lock className="w-3.5 h-3.5 text-slate-300" />
                   : isMastered
                     ? <Award className="w-4 h-4 text-green-600" />
                     : <span className="text-[10px] font-bold text-slate-600 tabular-nums">{Math.round((known / total) * 100)}%</span>}
               </ProgressRing>
-              <span className="flex flex-col gap-1 min-w-0">
-                <span className="flex flex-wrap items-center gap-1.5 font-semibold text-slate-900">
+              <span className="relative flex flex-col gap-1 min-w-0">
+                <span className="flex flex-wrap items-center gap-1.5 font-bold text-slate-900">
                   {subject.name}
                   {isMastered && <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">Mastered</span>}
                 </span>
-                <span className="text-xs text-slate-500 tabular-nums">
+                <span className={`text-xs font-semibold tabular-nums ${color.text}`}>
                   {subject.topics.length} topics · {total} cards · {known} known
                 </span>
                 <span className="text-xs text-slate-400 leading-relaxed">{subject.topics.map((t) => t.name).join(' · ')}</span>
@@ -339,8 +351,8 @@ export const Flashcards = () => {
     }
   }, [isIndexHidden]);
 
-  const topicsById = useMemo(() => Object.fromEntries((deck?.subjects ?? []).flatMap((subject) => (
-    subject.topics.map((t) => [t.id, { ...t, subjectName: subject.name }])
+  const topicsById = useMemo(() => Object.fromEntries((deck?.subjects ?? []).flatMap((subject, subjectIndex) => (
+    subject.topics.map((t) => [t.id, { ...t, subjectName: subject.name, subjectIndex }])
   ))), [deck]);
   const totalCards = useMemo(
     () => Object.values(topicsById).reduce((sum, t) => sum + t.card_count, 0),
@@ -518,7 +530,7 @@ export const Flashcards = () => {
           <SubjectIndex deck={deck} progress={progress} currentTopicId={topic?.id} onOpenTopic={openTopic} onOpenHome={openHome} />
         </aside>
 
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-slate-50">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-violet-50/40 to-sky-50/50">
           <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-2.5 flex items-center gap-3">
             <button
               onClick={() => setIsIndexHidden((v) => !v)}
@@ -535,10 +547,12 @@ export const Flashcards = () => {
               <PanelLeftOpen className="w-3.5 h-3.5" />
               Subjects
             </button>
-            <Layers className="hidden md:block w-4 h-4 text-brand-blue shrink-0" />
+            <span className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 text-white shrink-0">
+              <Layers className="w-4 h-4" />
+            </span>
             <span className="hidden md:inline text-sm font-bold text-slate-900">Flashcards</span>
             <span className="flex-1" />
-            <span className="flex items-center gap-1 text-xs font-bold text-amber-600 tabular-nums" title="Day streak">
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-xs font-bold text-amber-600 tabular-nums" title="Day streak">
               <Flame className="w-4 h-4" /> {streak}
             </span>
             <span className="text-xs text-slate-500 tabular-nums">
@@ -547,7 +561,8 @@ export const Flashcards = () => {
           </div>
 
           <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
-            {content}
+            {/* Card animations switch off for students who ask their device for less motion. */}
+            <MotionConfig reducedMotion="user">{content}</MotionConfig>
           </main>
         </div>
       </div>

@@ -9,14 +9,21 @@ import { HeroVisual, useHeroPlayback } from '@/components/home/HeroVisual';
 import { SubjectMarquee } from '@/components/home/SubjectMarquee';
 import { FreeMockAnnouncement } from '@/components/FreeMockAnnouncement';
 import { GrandMockDiscussion } from '@/components/home/GrandMockDiscussion';
+import { ClinicalSimulatorAnnouncement } from '@/components/ClinicalSimulatorAnnouncement';
 import { FeatureBento } from '@/components/home/FeatureBento';
 import { JourneyTimeline } from '@/components/home/JourneyTimeline';
 import { Testimonials } from '@/components/home/Testimonials';
 
-// The homepage event slot alternates between the free mock (before the exam)
-// and the Grand Mock discussion (after it). Set to false to show the
-// discussion section again — update its date first.
-const IS_FREE_MOCK_ANNOUNCED = true;
+// Which section fills the homepage event slot. The free mock runs monthly, so
+// switch back to 'free-mock' before each exam (update its date first), or to
+// 'grand-mock-discussion' after it (update that date too).
+const HOME_EVENT_SECTION = 'clinical-simulator';
+const HOME_EVENT_SECTIONS = {
+  'free-mock': FreeMockAnnouncement,
+  'grand-mock-discussion': GrandMockDiscussion,
+  'clinical-simulator': ClinicalSimulatorAnnouncement,
+};
+const HomeEventSection = HOME_EVENT_SECTIONS[HOME_EVENT_SECTION];
 
 // Counts up from 0 to `end` once the element scrolls into view — for
 // reduced-motion visitors too, since a changing number isn't movement.
@@ -346,7 +353,7 @@ export const Home = () => (
     <SubjectMarquee />
     <Stats />
     {/* Time-sensitive event, so it sits high on the page. */}
-    {IS_FREE_MOCK_ANNOUNCED ? <FreeMockAnnouncement /> : <GrandMockDiscussion />}
+    <HomeEventSection />
     <FeatureBento />
     <JourneyTimeline />
     <Testimonials />

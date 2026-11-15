@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, PartyPopper, Zap } from 'lucide-react';
-import { FlipCard } from './FlipCard';
+import {
+  ChevronLeft, PartyPopper, Zap, Check, RotateCcw,
+} from 'lucide-react';
+import {
+  FlipCard, TapButton, useAnswerAnimation,
+} from './FlipCard';
 
 /**
  * A run through a fixed pile of cards from any topics — today's due cards,
@@ -36,18 +40,20 @@ export const ReviewSession = ({ title, items, topicsById, onAnswer, onExit, onQu
     setAnswerCount((n) => n + 1);
   }, [current, onAnswer, requeued]);
 
+  const { answeredAs, answerWithAnimation } = useAnswerAnimation(answer);
+
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.target.matches('input, textarea') || !card) return;
       if (event.key === ' ') {
         event.preventDefault();
         setIsFlipped((v) => !v);
-      } else if (isFlipped && (event.key === 'k' || event.key === 'K' || event.key === 'ArrowRight')) answer(true);
-      else if (isFlipped && (event.key === 'r' || event.key === 'R' || event.key === 'ArrowLeft')) answer(false);
+      } else if (isFlipped && (event.key === 'k' || event.key === 'K' || event.key === 'ArrowRight')) answerWithAnimation(true);
+      else if (isFlipped && (event.key === 'r' || event.key === 'R' || event.key === 'ArrowLeft')) answerWithAnimation(false);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [card, isFlipped, answer]);
+  }, [card, isFlipped, answerWithAnimation]);
 
   const backButton = (
     <button onClick={onExit} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors mb-4">
@@ -59,7 +65,7 @@ export const ReviewSession = ({ title, items, topicsById, onAnswer, onExit, onQu
   if (!card) {
     const reviewed = tally.known + tally.review;
     return (
-      <div className="max-w-2xl">
+      <div className="max-w-2xl mx-auto">
         {backButton}
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
           <PartyPopper className="w-10 h-10 text-violet-500 mx-auto mb-3" />
@@ -86,13 +92,13 @@ export const ReviewSession = ({ title, items, topicsById, onAnswer, onExit, onQu
   const answeredInSession = tally.known + tally.review;
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       {backButton}
       <div className="flex items-center gap-3 mb-3 text-xs text-slate-500 tabular-nums">
-        <span className="font-bold text-slate-800">{title}</span>
-        <div className="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+        <span className="rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 px-2.5 py-0.5 font-bold text-white">{title}</span>
+        <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
           <span
-            className="block h-full bg-brand-blue transition-all"
+            className="block h-full bg-gradient-to-r from-violet-500 via-indigo-500 to-sky-500 transition-all"
             style={{ width: `${(answeredInSession / (answeredInSession + queue.length)) * 100}%` }}
           />
         </div>
@@ -102,6 +108,8 @@ export const ReviewSession = ({ title, items, topicsById, onAnswer, onExit, onQu
       <FlipCard
         key={answerCount}
         card={card}
+        enterFrom={answerCount > 0 ? 'fade' : null}
+        answeredAs={answeredAs}
         isFlipped={isFlipped}
         onFlip={() => setIsFlipped((v) => !v)}
         onSwipe={(direction) => answer(direction === 'right')}
@@ -110,16 +118,17 @@ export const ReviewSession = ({ title, items, topicsById, onAnswer, onExit, onQu
       />
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button
-          onClick={() => (isFlipped ? answer(false) : setIsFlipped(true))}
-          className={`py-3 text-sm font-semibold rounded-xl transition ${isFlipped ? 'bg-orange-50 text-orange-700 hover:bg-orange-100' : 'col-span-2 bg-brand-blue text-white hover:opacity-90'}`}
+        <TapButton
+          tap={isFlipped ? { scale: 0.92, rotate: -2 } : { scale: 0.95 }}
+          onClick={() => (isFlipped ? answerWithAnimation(false) : setIsFlipped(true))}
+          className={`flex items-center justify-center gap-1.5 py-3 text-sm font-bold rounded-xl text-white shadow-sm hover:opacity-90 transition-opacity ${isFlipped ? 'bg-gradient-to-r from-orange-500 to-amber-500' : 'col-span-2 bg-teal-700 hover:bg-teal-800'}`}
         >
-          {isFlipped ? 'Review again' : 'Reveal answer'}
-        </button>
+          {isFlipped ? <><RotateCcw className="w-4 h-4" /> Review again</> : 'Reveal answer'}
+        </TapButton>
         {isFlipped && (
-          <button onClick={() => answer(true)} className="py-3 text-sm font-semibold rounded-xl bg-green-50 text-green-700 hover:bg-green-100 transition">
-            I knew it
-          </button>
+          <TapButton tap={{ scale: 0.92, rotate: 2 }} onClick={() => answerWithAnimation(true)} className="flex items-center justify-center gap-1.5 py-3 text-sm font-bold rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm hover:opacity-90 transition-opacity">
+            <Check className="w-4 h-4" /> I knew it
+          </TapButton>
         )}
       </div>
       <p className="hidden md:block mt-2 text-[11px] text-slate-400 text-right">Space flip · → or K knew it · ← or R review</p>

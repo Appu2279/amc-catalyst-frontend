@@ -175,6 +175,8 @@ export const App = () => (
             <Route path="/admin/live-exams" element={<AdminLiveExams />} />
             <Route path="/admin/live-exams/:id" element={<AdminLiveExamDetail />} />
           </Route>
+          {/* Old or mistyped URLs (some indexed by Google) rendered a blank page. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </ThemeProvider>
     </AuthProvider>

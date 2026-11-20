@@ -35,7 +35,7 @@ export const PathwayPageSwitch = ({ current }) => (
   </nav>
 );
 
-const RouteMapCard = ({ doc, onOpen }) => (
+export const RouteMapCard = ({ doc, onOpen, icon: FallbackIcon = Route }) => (
   <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
     {doc.has_cover ? (
       <button
@@ -48,7 +48,7 @@ const RouteMapCard = ({ doc, onOpen }) => (
       </button>
     ) : (
       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-        <Route className="h-6 w-6" />
+        <FallbackIcon className="h-6 w-6" />
       </span>
     )}
     <div className="min-w-0 flex-1">

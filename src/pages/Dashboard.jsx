@@ -24,7 +24,8 @@ import {
   Sparkles,
   ArrowRight,
   Flame,
-  Award
+  Award,
+  Presentation
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { PlanStatus } from '@/components/PlanStatus';
@@ -220,6 +221,22 @@ export const Dashboard = () => {
         <PlanStatus subscriptions={subscriptions} loading={accessLoading} />
 
         <ClassGroupsCard isEnabled={Boolean(sections.online_classes)} />
+
+        {sections.online_classes && (
+          <Link
+            to="/class-presentations"
+            className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-brand-violet/40 hover:shadow-md"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-brand-violet">
+              <Presentation className="h-6 w-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-bold text-slate-900">Class presentations</h2>
+              <p className="mt-1 text-sm text-slate-500">Slides from your online classes, to revise from at any time.</p>
+            </div>
+            <ArrowRight className="h-5 w-5 shrink-0 text-slate-400" />
+          </Link>
+        )}
 
         <FlashcardsTodayCard />
 

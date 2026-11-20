@@ -33,6 +33,7 @@ import { MockExamResult } from '@/pages/MockExamResult';
 import { Profile } from '@/pages/Profile';
 import { RegistrationPathway } from '@/pages/RegistrationPathway';
 import { RouteMap } from '@/pages/RouteMap';
+import { ClassPresentations } from '@/pages/ClassPresentations';
 import { LiveExam } from '@/pages/LiveExam';
 import { LiveExamSession } from '@/pages/LiveExamSession';
 import { LiveExamResultsIndex, LiveExamPublicResults } from '@/pages/LiveExamResults';
@@ -141,6 +142,7 @@ export const App = () => (
             <Route path="/mock-exam" element={<MockExam />} />
             <Route path="/pathway-guide" element={<RegistrationPathway />} />
             <Route path="/pathway-guide/route-map" element={<RouteMap />} />
+            <Route path="/class-presentations" element={<ClassPresentations />} />
             {/* Live exam: open to every signed-in student, no plan needed. */}
             <Route path="/live-exam" element={<LiveExam />} />
             <Route path="/live-exam/session" element={<LiveExamSession />} />
@@ -169,6 +171,7 @@ export const App = () => (
             <Route path="/admin/notes" element={<AdminNotes key="notes" />} />
             <Route path="/admin/guideline-updates" element={<AdminNotes key="guidelines" collection="guidelines" />} />
             <Route path="/admin/pathway-guide" element={<AdminNotes key="pathway" collection="pathway" />} />
+            <Route path="/admin/class-presentations" element={<AdminNotes key="class_slides" collection="class_slides" />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/payments" element={<AdminPaymentClaims />} />
             <Route path="/admin/referrals" element={<AdminReferrals />} />

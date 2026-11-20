@@ -122,6 +122,13 @@ const COPY = {
     freeColumn: null,
     empty: 'Upload a PDF and it will show on the student Route Map page straight away.',
   },
+  class_slides: {
+    heading: 'Class Presentations',
+    intro: 'Slides from the online classes, shown on the student Class Presentations page. Only students whose plan includes "Online classes" (AMC Full Course) can open them.',
+    upload: 'Upload presentation',
+    freeColumn: null,
+    empty: 'Upload a PDF and it will show on the student Class Presentations page straight away.',
+  },
 };
 
 export const AdminNotes = ({ collection = 'notes' }) => {

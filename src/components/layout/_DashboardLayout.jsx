@@ -15,10 +15,12 @@ import {
   Radio,
   ScrollText,
   Layers,
+  Presentation,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useCurrentLiveExam } from '@/hooks/useCurrentLiveExam';
+import { useAccess } from '@/hooks/useAccess';
 
 const NAV = [
   { key: 'dashboard', to: '/dashboard', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
@@ -51,6 +53,19 @@ const LIVE_BADGE = {
   results: { text: 'Results', className: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
 };
 
+// Only for plans with online classes. Desktop sidebar only: the phone bar is
+// full, so phones reach it from the dashboard card instead.
+const CLASS_PRESENTATIONS = {
+  key: 'class-presentations', to: '/class-presentations', label: 'Class Presentations', short: 'Slides',
+  icon: Presentation, desktopOnly: true,
+};
+
+const withClassPresentations = (items, isEnabled) => {
+  if (!isEnabled) return items;
+  const at = items.findIndex((n) => n.key === 'guidelines') + 1;
+  return [...items.slice(0, at), CLASS_PRESENTATIONS, ...items.slice(at)];
+};
+
 const withLiveExam = (exam) => {
   if (!exam) return NAV;
   const item = {
@@ -66,7 +81,8 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(collapseNav);
   const { exam: liveExam } = useCurrentLiveExam();
-  const navItems = withLiveExam(liveExam);
+  const { sections } = useAccess();
+  const navItems = withClassPresentations(withLiveExam(liveExam), Boolean(sections.online_classes));
 
   useEffect(() => setCollapsed(collapseNav), [collapseNav]);
 
@@ -235,7 +251,7 @@ export const DashboardLayout = ({ children, active, collapseNav = false }) => {
       {/* Mobile & Tablet Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 z-50 px-2 py-1 shadow-lg">
         <div className="flex items-center justify-around h-14 max-w-md mx-auto">
-          {navItems.map((item) => {
+          {navItems.filter((item) => !item.desktopOnly).map((item) => {
             const Icon = item.icon;
             const current = isActive(item);
             return (

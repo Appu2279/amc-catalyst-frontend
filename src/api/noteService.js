@@ -9,6 +9,9 @@ export const getGuidelineUpdates = () => axiosInstance.get('/notes', { params: {
 // PDFs on the Pathway Guide page (e.g. the route map), open to every signed-in user.
 export const getPathwayGuidePdfs = () => axiosInstance.get('/notes', { params: { collection: 'pathway' } });
 
+// Online-class slides; listed for anyone, but only online_classes plans can open them.
+export const getClassPresentations = () => axiosInstance.get('/notes', { params: { collection: 'class_slides' } });
+
 // No auth required — used on the public marketing homepage, before there is
 // an account to attach a token to. See notes/public/covers on the backend.
 export const getPublicNoteCovers = () => axiosInstance.get('/notes/public/covers');
